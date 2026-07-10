@@ -10,8 +10,12 @@
 % pre-defined parcellation:
 %   0. MASK (optional): Define the set of voxels of interest (e.g. full brain
 %      or including CSF compartments) if not using the bundled full-brain mask.
-%   1. EIGENVECTORS: Read the fMRI data and get the leading eigenvector of the
-%      phase coherence matrix from each volume.
+%      Confirm RAM availibility creating a matrix N_voxels x (T_scanxN_scans).
+%   1. EIGENVECTORS: Read the fMRI data realigned to a common template,
+       Resize fMRI volumes to the Mask size, extract the time series from the N voxels of interest,
+       Compute the Hilbert transform and extract the signal phase,
+       get the 1xN leading eigenvector of the phase coherence matrix,
+       concatenate the leading eigenvetors from all the volumes and all scans, with size N_voxels x(TxN_scans)
 %   2. CLUSTER: Cluster all the leading eigenvectors extracted from fMRI scans
 %      into a range of K clusters (coupling modes).
 %   2b. HARMONIZE: Compute the fractional occupancy of each mode for every scan,
@@ -28,9 +32,8 @@
 %      showing the clustering results, statistical outcomes, and
 %      3D renderings of cluster centroids on brain space.
 %
-% Used in: Campo et al., Cognitive reserve linked to network-specific
-% brain-ventricle coupling modes, 2025
-%
+% Used in: Campo et al. (2026) Cognitive function linked to temporal occupancy of Brain-Ventricle (BraVe) modes,
+% bioRxiv 2025.01.04.631289; doi: https://doi.org/10.1101/2025.01.04.631289
 %
 % FUNCTIONS AND THEIR USAGE:
 %
