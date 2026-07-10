@@ -1,5 +1,5 @@
-Get_EigenVectors_VoxelSpace_Server
-
+% Get_EigenVectors_VoxelSpace_Server
+%
 % Function to save the leading eigenvectors from the fMRI data.
 % Vectors are concatenated acorss all scans ready for clustering.
 %

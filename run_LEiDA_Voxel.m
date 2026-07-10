@@ -1,26 +1,31 @@
-%% run_LEiDA_Vox.m
+%% run_LEiDA_Voxel.m
 
 %==========================================================================
-% README and Pipeline Setup for Functional Coupling Analysis using LEiDA 
+% README and Pipeline Setup for Functional Coupling Analysis using LEiDA
 %==========================================================================
 %
 % OVERVIEW:
-% Pipeline to analyze eigenvector dynamics in fMRI data using LEiDA:
-%   1. EIGENVECTORS: Read the fMRI data and get the leading eigenvectors from each volume. 
-%   2. CLUSTER: Cluster all the leading eigenvectors extracted from fMRI scans into a range
-%      of K clusters (coupling modes).
-%   3. PATTERNS: Visualize the spatial pattern of each cluster centroid.
-%   4. OCCUPANCY: Compute the fractional occupancy of each mode each coupling for every scan.
-%   5.1 COMPARE CONDITIONS: Perform hypothesis testing between conditions, sample permutation and bootstraping.
-%   5.2 COMPARE SCORES: Correlate with Scores, both continuous (using correlations) 
-%      and binary scores (permutation testing) and correcting for multiple
-%      testing
-%   6. RESULTS: Visualize the spatial patterns of relevant modes
-%               - compare with typical Resting-State Networks
-%               - List Brain areas involved
+% Pipeline to analyze eigenvector dynamics in fMRI data using LEiDA, working
+% directly in voxel space (a full-brain or custom voxel mask) rather than a
+% pre-defined parcellation:
+%   0. MASK (optional): Define the set of voxels of interest (e.g. full brain
+%      or including CSF compartments) if not using the bundled full-brain mask.
+%   1. EIGENVECTORS: Read the fMRI data and get the leading eigenvector of the
+%      phase coherence matrix from each volume.
+%   2. CLUSTER: Cluster all the leading eigenvectors extracted from fMRI scans
+%      into a range of K clusters (coupling modes).
+%   2b. HARMONIZE: Compute the fractional occupancy of each mode for every scan,
+%      and harmonize it across acquisition sites using ComBat.
+%   3. COMPARE CONDITIONS: Perform hypothesis testing between conditions
+%      (permutation testing, with optional bootstrap and Hedge's effect sizes).
+%   4. RESULTS: Automatically identify the modes that differ most between
+%      conditions, and visualize their spatial patterns
+%               - as slices with occupancy bar plots
+%               - as 3D renders, including overlap with Yeo Resting-State Networks
+%   5. SCORES: Correlate the key modes' occupancy with clinical/cognitive scores.
 %
-% Figures are saved at each step in the results folder in both .fig and .png, 
-%      showing the clustering results, statistical outcomes, and 
+% Figures are saved at each step in the results folder in both .fig and .png,
+%      showing the clustering results, statistical outcomes, and
 %      3D renderings of cluster centroids on brain space.
 %
 % Used in: Campo et al., Cognitive reserve linked to network-specific
@@ -29,78 +34,80 @@
 %
 % FUNCTIONS AND THEIR USAGE:
 %
-%  Get_EigenVectors_VoxelSpace
+% 0. Mask_Voxels_of_Interest  (script, optional)
+%    - Purpose: Builds a custom binary voxel mask in MNI space from a set of
+%      per-scan brain masks (e.g. the CPAC preprocessing brain-extraction masks),
+%      keeping voxels present in at least a chosen proportion of scans, and
+%      resizing to the desired voxel size (e.g. 10mm3).
+%    - This is a script: edit its "USER INPUT" variables (data_path,
+%      extension_name, prop_masks, resize_scale) directly and run it.
+%    - Not needed if using the bundled 'utilities/MNI_10mm3_FullBrain.mat' mask.
 %
-% 1. LEiDA_cluster_VoxelMNI10mm
+% 1. Get_EigenVectors_VoxelSpace_Server  (script)
+%    - Purpose: Loads the preprocessed fMRI NIfTI files, resizes them to the
+%      mask's voxel space, computes the signal phase (Hilbert transform), and
+%      extracts the leading eigenvector of the phase coherence matrix at every
+%      TR, for every scan.
+%    - This is a script, not a function: it cannot be called with arguments.
+%      Edit its "USER INPUT" section directly (fMRI_dir, extension_name,
+%      results_dir, Mask_file, file_V1, TimeMax), then run it.
+%    - Inputs (edited inside the script):
+%      fMRI_dir      : Directory with the preprocessed fMRI NIfTI files.
+%      extension_name: Common suffix of the fMRI filenames to load.
+%      Mask_file     : .mat file with the voxel mask (variable MNI_lowres_Mask).
+%      file_V1       : Output filename for the leading eigenvectors.
+%      TimeMax       : Maximum number of volumes expected per scan.
+%    - Output (saved to file_V1): V1_all, ind_voxels, MNI_lowres_Mask, data_info,
+%      Scan_num, Scan_length.
+%
+% 2. LEiDA_cluster_VoxelMNI10mm
 %    - Purpose: Clusters the leading eigenvectors into a range of K clusters.
-%    Note: the leading eigenvectors were previously extracted from the 599 fMRI scans realigned to MNI space
-%    using function EigenVectors_VoxelSpace_v1.m
 %
 %    Inputs:
 %      data_dir    : Directory with the eigenvector file.
-%      file_V1     : Name of the eigenvector file (e.g., 'LEiDA_V1_all_MNI10mm.mat').
+%      file_V1     : Name of the eigenvector file (output of step 1).
 %      mink        : Minimum number of clusters (e.g., 2).
 %      maxk        : Maximum number of clusters (e.g., 20).
 %      replicates  : Number of replicates (e.g., 100).
 %      results_dir : Directory where results will be saved.
 %      cluster_file: Output file name for clustering results.
 %
-%    Example:
-%      LEiDA_cluster_VoxelMNI10mm(data_dir, file_V1, mink, maxk, replicates, results_dir, cluster_file);
+%    Output: [Kmeans_results, rangeK]
 %
-% 2. LEiDA_stats_Voxel_FracOccup
-%    - Purpose: Computes the fractional occupancy of each coupling mode for each subject,
-%               and performs statistical tests (permutation & bootstrap) between conditions.
+%    Example:
+%      [Kmeans_results, rangeK] = LEiDA_cluster_VoxelMNI10mm(data_dir, file_V1, mink, maxk, replicates, results_dir, cluster_file);
+%
+% 2b. Harmonize mode occupancies with ComBat (inline in this script, uses combat/combat.m)
+%    - Purpose: Computes the fractional occupancy of each mode for every scan
+%      (for every K), then removes site effects from the occupancies with
+%      ComBat (Johnson et al.), keeping diagnosis/age/sex/education as covariates
+%      of interest. See the "2b. Extract Mode Occupancies..." section below.
+%    - Requires a Scores table (Scores_Table) with per-scan SITE, AGE_AT_SCAN,
+%      PTGENDER, PTEDUCAT and DX_num columns. This table is study-specific data
+%      and is not included in this repository.
+%
+% 3. LEiDA_stats_Voxel_FracOccup_ComBat
+%    - Purpose: Performs statistical tests (permutation, with optional bootstrap)
+%      on the fractional occupancy of each mode between conditions. Uses Welch's
+%      t-test for independent samples or a paired permutation test for paired
+%      samples, and reports Hedge's effect sizes.
 %
 %    Inputs:
-%      results_dir  : Directory where clustering results are stored.
-%      file_cluster : Clustering results file name.
-%      stats_file   : Output file name for statistical results.
-%      cond         : Cell array of condition labels (e.g., {'CN','EMCI','LMCI','AD'}).
-%      pair         : 0 for independent subjects, 1 for paired tests.
-%      n_permutations: Number of permutation samples (e.g., 1000 for quick tests).
-%      n_bootstraps : Number of bootstrap samples (e.g., 2 for large samples).
+%      results_dir      : Directory where clustering results are stored.
+%      file_cluster      : Clustering results file name.
+%      file_stats        : Output file name for statistical results.
+%      cond              : Cell array of condition labels (e.g., {'CN','MCI','DEM'}).
+%      Index_Conditions   : Vector assigning each scan to a condition.
+%      pair              : 0 for independent subjects, 1 for paired tests.
+%      n_permutations    : Number of permutation samples (e.g., 1000).
+%      n_bootstraps      : Number of bootstrap samples (e.g., 0-50).
+%      P                 : Fractional occupancy matrix (raw or ComBat-harmonized).
 %
 %    Example:
-%      LEiDA_stats_Voxel_FracOccup(results_dir, cluster_file, stats_file, Conditions_tag, Paired_tests, n_permutations, n_bootstraps);
+%      LEiDA_stats_Voxel_FracOccup_ComBat(results_dir, cluster_file, stats_file, cond, Index_Conditions, pair, n_permutations, n_bootstraps, P);
 %
-% 3. Plot_KModes_TransparentBrain
-%    - Purpose: Visualize the coupling modes (cluster centroids) and mean +/- standard error bars (fractional occupancy)
-%               for a selected K on a transparent brain.
-%
-%    Inputs:
-%      k            : Selected number of FC states to display (e.g., 5).
-%      results_dir  : Directory with result files.
-%      file_clusters: Clustering results file name.
-%      file_stats   : Statistical results file name.
-%
-%    Example:
-%      Plot_KModes_TransparentBrain(5, results_dir, cluster_file, stats_file);
-%
-% 4. Plot_ClustVoxelCentroid_Pyramid_RSNs
-%    - Purpose: Renders a pyramid of centroids, each rendered on a transparent brain
-%               with optional RSN overlay and significance markers.
-%
-%    Inputs:
-%      results_dir : Directory where results are stored.
-%      file_clusters: Clustering results file name.
-%      stats_file  : Statistics file name.
-%      save_name   : Base name for saving the output figure.
-%      overlap_Yeo : Flag to use Yeo RSN colors (1=yes, 0=no).
-%      cortex_dir  : View for rendering ('SideView' or 'TopView').
-%      cond_pair   : Index for condition pair (e.g., 3 might indicate CN vs. AD).
-%                    Choose which pairs of conditions compared for asterisks:
-%                    Choose which pairs of conditions compared for asterisks:
-                            %1 : CN - MCI
-                            %2 : CN - DEM
-                            %3 : MCI - DEM
-%      Add_asterisks: Flag to overlay significance markers (1=yes, 0=no).
-%
-%    Example:
-%      Plot_ClustVoxelCentroid_Pyramid_RSNs(results_dir, cluster_file, stats_file, 'Centroid_Pyramid_Magenta_CN_AD', 0, 'SideView', 3, 1);
-%
-% 5. Plot_FracOccup_stats
-%    - Purpose: Generates plots summarizing the statistical tests on fractional 
+% 4. Plot_FracOccup_stats
+%    - Purpose: Generates plots summarizing the statistical tests on fractional
 %               occupancy (p-values, barplots of means, and Hedge's effect sizes).
 %
 %    Inputs:
@@ -110,20 +117,84 @@
 %    Example:
 %      Plot_FracOccup_stats(results_dir, stats_file);
 %
-% 6. Plot_Modes_TransparentBrain
-%    - Purpose: Provides detailed 3D rendering for an individual coupling mode
-%               considering both the entire brain or only cortical voxels 
-%               including its overlap with RSNs.
+% 5. Plot_ClustVoxelCentroid_Pyramid_RSNs
+%    - Purpose: Renders a pyramid of all centroids (across all K), each on a
+%               transparent brain, with optional RSN overlay and significance markers.
 %
 %    Inputs:
-%      results_dir : Directory with result files.
+%      results_dir  : Directory where results are stored.
 %      file_clusters: Clustering results file name.
-%      file_stats  : Statistics file name.
-%      k           : Selected number of coupling modes (e.g., 4).
-%      c           : Index of the mode to visualize (e.g., 2).
+%      stats_file   : Statistics file name.
+%      save_name    : Base name for saving the output figure.
+%      overlap_Yeo  : Flag to use Yeo RSN colors (1=yes, 0=no).
+%      cortex_dir   : View for rendering ('SideView' or 'TopView').
+%      cond_pair    : Index for condition pair to report asterisks for, e.g.:
+                            %1 : CN - MCI
+                            %2 : CN - DEM
+                            %3 : MCI - DEM
+%      Add_asterisks: Flag to overlay significance markers (1=yes, 0=no).
 %
 %    Example:
-%      Plot_Modes_TransparentBrain(results_dir, cluster_file, stats_file, 4, 2);
+%      Plot_ClustVoxelCentroid_Pyramid_RSNs(results_dir, cluster_file, stats_file, 'Centroid_Pyramid_Magenta_CN_AD', 0, 'SideView', 3, 1);
+%
+% 6. Choose_Relevant_Modes
+%    - Purpose: Automatically selects the [k c] modes that differ most between
+%               conditions (significant after multiple-testing correction, with
+%               a minimum effect size), and groups correlated modes together.
+%
+%    Inputs:
+%      results_dir : Directory where results are stored.
+%      cluster_file: Clustering results file name.
+%      stats_file  : Statistics file name.
+%
+%    Output: [Key_Modes_KC, Key_Centroids]
+%
+%    Example:
+%      Key_Modes_KC = Choose_Relevant_Modes(results_dir, cluster_file, stats_file);
+%
+% 7. Plot_KeyModes_Slices_Stats
+%    - Purpose: For each selected key mode, renders the centroid on anatomical
+%               slices and plots mean +/- SE fractional occupancy bars per condition.
+%
+%    Inputs:
+%      results_dir  : Directory where result files are stored.
+%      cluster_file : Clustering results file name.
+%      stats_file   : Statistical results file name.
+%      save_name    : Base name for saving the output figure.
+%      Key_Modes_KC : Nx2+ matrix with one row per key mode, [k c ...].
+%
+%    Example:
+%      Plot_KeyModes_Slices_Stats(results_dir, cluster_file, stats_file, save_name, Key_Modes_KC);
+%
+% 8. Plot_Mode_TransparentBrain
+%    - Purpose: Provides detailed 3D rendering for each selected coupling mode,
+%               including its overlap with Yeo Resting-State Networks.
+%
+%    Inputs:
+%      results_dir  : Directory with result files.
+%      cluster_file : Clustering results file name.
+%      Key_Modes_KC : Nx2+ matrix with one row per mode, [k c ...].
+%
+%    Example:
+%      Plot_Mode_TransparentBrain(results_dir, cluster_file, Key_Modes_KC);
+%
+% 9. Scores_vs_Mode_Occupancy
+%    - Purpose: Correlates (partial correlation, controlling for age) the
+%               occupancy of each key mode with a set of clinical/cognitive
+%               scores, plots the results, and exports them to a CSV.
+%    - NOTE: The set of score columns used (Genetics/Biomarkers/Cognitive_functions
+%      indices) is hardcoded for the ADNI Scores_ADNI table used in Campo et al.;
+%      adapt these indices for a different scores table.
+%
+%    Inputs:
+%      Scores_Table : .mat file with the Scores_ADNI table.
+%      Key_Modes_KC : Nx2+ matrix with one row per key mode, [k c ...].
+%      results_dir  : Directory where results are stored.
+%      stats_file   : Statistics file name (for the occupancy matrix P).
+%      save_name    : Output .mat filename for the correlation results.
+%
+%    Example:
+%      Scores_vs_Mode_Occupancy(Scores_Table, Key_Modes_KC, results_dir, stats_file, save_name);
 %
 % Complete Pipeline Example:
 % ----------------------------------------------
@@ -137,36 +208,36 @@
 %   Add paths if necessary:
 %     addpath(genpath(cd));
 %
-%   1. Cluster the eigenvectors:
+%   1. Get the leading eigenvectors:
+%     Edit and run Get_EigenVectors_VoxelSpace_Server.m (see step 1 above).
+%
+%   2. Cluster the eigenvectors:
 %     mink = 2; maxk = 20; replicates = 100;
 %     LEiDA_cluster_VoxelMNI10mm(data_dir, file_V1, mink, maxk, replicates, results_dir, cluster_file);
 %
-%   2. Statistical Analysis:
-%     Conditions_tag = {'CN','EMCI','LMCI','AD'};
-%     Paired_tests = 0; n_permutations = 1000; n_bootstraps = 2;
-%     LEiDA_stats_Voxel_FracOccup(results_dir, cluster_file, stats_file, Conditions_tag, Paired_tests, n_permutations, n_bootstraps);
+%   3. Harmonize occupancies and run the statistical analysis:
+%     cond = {'CN','MCI','DEM'};
+%     Paired_tests = 0; n_permutations = 1000; n_bootstraps = 0;
+%     LEiDA_stats_Voxel_FracOccup_ComBat(results_dir, cluster_file, stats_file, cond, Index_Conditions, Paired_tests, n_permutations, n_bootstraps, P_harmonized);
 %
-%   3. Generate Figures:
-%     a. Repertoire of coupling modes for a selected K:
-%        Plot_KModes_TransparentBrain(5, results_dir, cluster_file, stats_file);
+%   4. Generate Figures:
+%     a. Plot statistical results, including all p-values and effect sizes:
+%        Plot_FracOccup_stats(results_dir, stats_file);
 %
 %     b. Centroid pyramid with RSN overlay:
 %        overlap_RSNs = 0; cortex_dir = 'SideView'; Add_asterisks = 1; cond_pair = 3;
 %        save_name = 'Centroid_Pyramid_Magenta_CN_AD';
 %        Plot_ClustVoxelCentroid_Pyramid_RSNs(results_dir, cluster_file, stats_file, save_name, overlap_RSNs, cortex_dir, cond_pair, Add_asterisks);
 %
-%     c. Plot statistical results, including all p-values and effect sizes
-%        Plot_FracOccup_stats(results_dir, stats_file);
+%     c. Automatically select and plot the key modes that differ between conditions:
+%        Key_Modes_KC = Choose_Relevant_Modes(results_dir, cluster_file, stats_file);
+%        Plot_KeyModes_Slices_Stats(results_dir, cluster_file, stats_file, 'Fig1_Key_modes', Key_Modes_KC);
 %
-%     d. Detailed mode visualization:
-%        Plot_Modes_TransparentBrain(results_dir, cluster_file, stats_file, 4, 2);
+%     d. Detailed 3D visualization of the key modes, with RSN overlap:
+%        Plot_Mode_TransparentBrain(results_dir, cluster_file, Key_Modes_KC);
 %
-%     e. Alternatively, a centroid pyramid with Yeo RSN color overlay:
-%        save_name = 'Centroid_Pyramid_RSNoverlap_CN_AD';
-%        overlap_RSNs = 1; Add_asterisks = 0; cortex_dir = 'TopView';
-%        Plot_ClustVoxelCentroid_Pyramid_RSNs(results_dir, cluster_file, stats_file, save_name, overlap_RSNs, cortex_dir, cond_pair, Add_asterisks);
-%
-%     
+%     e. Correlate key mode occupancy with clinical/cognitive scores:
+%        Scores_vs_Mode_Occupancy(Scores_Table, Key_Modes_KC, results_dir, stats_file, 'Scores_Mode_Stats.mat');
 %
 %==========================================================================
 %% Setup Library of Directories and File Names 
@@ -180,13 +251,15 @@ extension_name= 'rest_space-MNI152NLin6ASym_desc-preproc_bold.nii.gz';
 %Directory where the LEiDA scripts are:
 leida_dir = '/Users/user/Documents/Research/CognitiveDecline/LEiDA_V3';
 
-% Name of the file containing a binary mask in MNI space, containing 1 in all the voxels 
-% to be considered as 'regions of interest' or 'parcels' in the analysis. 
-% The total number of voxels with 1 corresponds to the number of elements
-% in the eigenvectors. With a 10mm3 size, the entire brain has 1500-3000
-% voxels.
+% NOTE on the voxel mask: the binary mask in MNI space (1 in every voxel to be
+% used as a 'region of interest', 0 elsewhere) is NOT set here. It is set as
+% the Mask_file variable inside Get_EigenVectors_VoxelSpace_Server.m (step 1
+% below), since that script cannot be called with arguments. The total number
+% of voxels with 1 corresponds to the number of elements in the eigenvectors;
+% at 10mm3 resolution the entire brain has ~1500-3000 voxels. See
+% utilities/MNI_10mm3_FullBrain.mat for the bundled full-brain mask, or build
+% a custom one with Mask_Voxels_of_Interest.m (step 0).
 
-Mask_file='Mask_10mm_FullBrain.mat';
 Scores_Table='Scores_ADNI_2177scans.mat';
 
 % Directory where the results from this run will be stored
@@ -200,8 +273,11 @@ addpath(genpath(results_dir));
 addpath(genpath(leida_dir));
 
 %% 1. Get eigenvectors in voxel space
-% 
-% Get_EigenVectors_VoxelSpace(fMRI_dir,extension_name,results_dir,file_V1,Mask_file)
+%
+% Get_EigenVectors_VoxelSpace_Server.m is a script, not a function, so it
+% cannot be called with arguments here. Instead, open that file, set its
+% "USER INPUT" variables (fMRI_dir, extension_name, results_dir, Mask_file,
+% file_V1, TimeMax) to match this section, and run it directly.
 %
 %% 2. Clustering the Eigenvectors into K Clusters
 % 
