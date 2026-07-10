@@ -18,14 +18,18 @@
 %      and, optionally, harmonize it across acquisition sites using ComBat.
 %      Both the original and harmonized occupancies are saved, and downstream
 %      steps can be run on either one.
-%   3. COMPARE CONDITIONS: Perform hypothesis testing between conditions
-%      (permutation testing, with optional bootstrap and Hedge's effect sizes),
-%      on either the original or the harmonized occupancies.
-%   4. RESULTS: Automatically identify the modes that differ most between
-%      conditions, and visualize their spatial patterns
+%   3. COMPARE CONDITIONS (optional): Perform hypothesis testing between
+%      conditions (permutation testing, with optional bootstrap and Hedge's
+%      effect sizes), on either the original or the harmonized occupancies.
+%      Skip this step for studies with no discrete conditions to compare.
+%   4. RESULTS: Identify a set of key modes - automatically, from step 3's
+%      significant/large-effect modes, or manually - and visualize their
+%      spatial patterns
 %               - as slices with occupancy bar plots
 %               - as 3D renders, including overlap with Yeo Resting-State Networks
-%   5. SCORES: Correlate the key modes' occupancy with clinical/cognitive scores.
+%   5. SCORES: Correlate the key modes' occupancy with clinical/cognitive
+%      scores. Only needs the occupancy matrix from step 2b and a set of key
+%      modes (from step 4); does not require step 3 to have been run.
 %
 % Figures are saved at each step in the results folder in both .fig and .png,
 %      showing the clustering results, statistical outcomes, and
@@ -203,19 +207,25 @@
 %    - Purpose: Correlates (partial correlation, controlling for age) the
 %               occupancy of each key mode with a set of clinical/cognitive
 %               scores, plots the results, and exports them to a CSV.
+%    - Takes the occupancy matrix P directly (e.g. P_original or P_harmonized
+%      from step 2b), NOT from stats_file, so it does not depend on step 3
+%      (LEiDA_stats_Voxel_FracOccup_ComBat) having been run. This makes it
+%      usable on its own for studies with no discrete conditions to compare,
+%      only continuous scores (combine with a manually-specified Key_Modes_KC,
+%      see step 4 below, since Choose_Relevant_Modes does need stats_file).
 %    - NOTE: The set of score columns used (Genetics/Biomarkers/Cognitive_functions
 %      indices) is hardcoded for the ADNI Scores_ADNI table used in Campo et al.;
 %      adapt these indices for a different scores table.
 %
 %    Inputs:
+%      P            : Fractional occupancy matrix (P_original or P_harmonized).
 %      Scores_Table : .mat file with the Scores_ADNI table.
 %      Key_Modes_KC : Nx2+ matrix with one row per key mode, [k c ...].
-%      results_dir  : Directory where results are stored.
-%      stats_file   : Statistics file name (for the occupancy matrix P).
+%      results_dir  : Directory where the figure/CSV/mat outputs are saved.
 %      save_name    : Output .mat filename for the correlation results.
 %
 %    Example:
-%      Scores_vs_Mode_Occupancy(Scores_Table, Key_Modes_KC, results_dir, stats_file, save_name);
+%      Scores_vs_Mode_Occupancy(P, Scores_Table, Key_Modes_KC, results_dir, save_name);
 %
 % Complete Pipeline Example:
 % ----------------------------------------------
@@ -236,33 +246,42 @@
 %     mink = 2; maxk = 20; replicates = 100;
 %     LEiDA_cluster_VoxelMNI10mm(data_dir, file_V1, mink, maxk, replicates, results_dir, cluster_file);
 %
-%   3. Extract occupancies, harmonize across sites, and run the statistical analysis:
+%   3. Extract occupancies, harmonize across sites (optional), and choose which
+%      occupancy matrix (raw or harmonized) the rest of the pipeline uses:
 %     apply_combat = 1; occup_file = 'LEiDA_Occupancies_harmonized.mat';
 %     [P_original, P_harmonized, rangeK, Scores_ADNI] = Save_Occupancies_Harmonize(results_dir, cluster_file, Scores_Table, apply_combat, occup_file);
-%     use_harmonized_occupancies = 1;   % 1: test P_harmonized, 0: test P_original
+%     use_harmonized_occupancies = 1;   % 1: use P_harmonized, 0: use P_original
 %     P = P_harmonized;   % or P_original
+%
+%   4. (Optional) Statistical analysis between discrete conditions - skip this
+%      step entirely if your study only has continuous scores to correlate:
 %     cond = {'CN','MCI','DEM'};
 %     Paired_tests = 0; n_permutations = 1000; n_bootstraps = 0;
 %     LEiDA_stats_Voxel_FracOccup_ComBat(results_dir, cluster_file, stats_file, cond, Index_Conditions, Paired_tests, n_permutations, n_bootstraps, P);
 %
-%   4. Generate Figures:
-%     a. Plot statistical results, including all p-values and effect sizes:
+%   5. Generate Figures:
+%     a. Plot statistical results, including all p-values and effect sizes
+%        (requires step 4):
 %        Plot_FracOccup_stats(results_dir, stats_file);
 %
-%     b. Centroid pyramid with RSN overlay:
+%     b. Centroid pyramid with RSN overlay (requires step 4):
 %        overlap_RSNs = 0; cortex_dir = 'SideView'; Add_asterisks = 1; cond_pair = 3;
 %        save_name = 'Centroid_Pyramid_Magenta_CN_AD';
 %        Plot_ClustVoxelCentroid_Pyramid_RSNs(results_dir, cluster_file, stats_file, save_name, overlap_RSNs, cortex_dir, cond_pair, Add_asterisks);
 %
-%     c. Automatically select and plot the key modes that differ between conditions:
+%     c. Automatically select and plot the key modes that differ between
+%        conditions (requires step 4). Without step 4, specify Key_Modes_KC
+%        manually instead, e.g. Key_Modes_KC = [3 4; 5 6]:
 %        Key_Modes_KC = Choose_Relevant_Modes(results_dir, cluster_file, stats_file);
 %        Plot_KeyModes_Slices_Stats(results_dir, cluster_file, stats_file, 'Fig1_Key_modes', Key_Modes_KC);
 %
-%     d. Detailed 3D visualization of the key modes, with RSN overlap:
+%     d. Detailed 3D visualization of the key modes, with RSN overlap
+%        (only requires cluster_file and Key_Modes_KC, not step 4):
 %        Plot_Mode_TransparentBrain(results_dir, cluster_file, Key_Modes_KC);
 %
-%     e. Correlate key mode occupancy with clinical/cognitive scores:
-%        Scores_vs_Mode_Occupancy(Scores_Table, Key_Modes_KC, results_dir, stats_file, 'Scores_Mode_Stats.mat');
+%     e. Correlate key mode occupancy with clinical/cognitive scores (only
+%        requires P and Key_Modes_KC, not step 4):
+%        Scores_vs_Mode_Occupancy(P, Scores_Table, Key_Modes_KC, results_dir, 'Scores_Mode_Stats.mat');
 %
 %==========================================================================
 %% Setup Library of Directories and File Names 
@@ -322,16 +341,21 @@ apply_combat = 1;   % 1 to harmonize occupancies across sites with ComBat; 0 to 
 [P_original, P_harmonized, rangeK, Scores_ADNI] = ...
     Save_Occupancies_Harmonize(results_dir, cluster_file, Scores_Table, apply_combat, occup_file);
 
-%% 3. Statistical Analysis of Mode Occupancies between conditions
-
-% Choose whether the statistics (and, via stats_file, the score correlations)
-% run on the raw occupancies or the ComBat site-harmonized ones:
+% Choose, once, whether the rest of the pipeline (condition statistics in step 3
+% AND the score correlations in Figure 6) runs on the raw or the harmonized
+% occupancies. This is independent of whether step 3 is run at all, so
+% Figure 6 can be used on its own for studies with no discrete conditions to
+% test, only continuous scores to correlate with mode occupancy.
 use_harmonized_occupancies = 1;   % 1: use P_harmonized; 0: use P_original
 if use_harmonized_occupancies
     P = P_harmonized;
 else
     P = P_original;
 end
+
+%% 3. Statistical Analysis of Mode Occupancies between conditions
+% (Skip this section entirely if your study has no discrete conditions to
+% compare; Figure 6 below only needs P and Key_Modes_KC, not this section's output.)
 
 % --- Definir condições ---
 Index_Conditions = Scores_ADNI.DX_num+1; % (+ 1 so conditions are 1,2,3)
@@ -377,7 +401,8 @@ Plot_ClustVoxelCentroid_Pyramid_RSNs(results_dir, cluster_file, stats_file, save
 
 % Select a number of Key Modes to analyze
 
-% Automatically select the Key Modes differing mostly between conditions 
+% Automatically select the Key Modes differing mostly between conditions
+% (requires stats_file from step 3, i.e. discrete conditions to compare):
 Key_Modes_KC = Choose_Relevant_Modes(results_dir, cluster_file, stats_file);
 
 % OR
@@ -388,7 +413,8 @@ Key_Modes_KC = Choose_Relevant_Modes(results_dir, cluster_file, stats_file);
 
 % OR
 
-% Make your own selection in pairs [k c]
+% Make your own selection in pairs [k c] (does not require step 3 at all,
+% e.g. for studies with only continuous scores and no discrete conditions):
 % Key_Modes_KC=[[3 4];[5 6];];
 
 %% FIGURE 1. Plot the key modes differing between conditions 
@@ -401,8 +427,9 @@ Plot_KeyModes_Slices_Stats(results_dir, cluster_file, stats_file,save_name,Key_M
 Plot_Mode_TransparentBrain(results_dir, cluster_file, Key_Modes_KC);
 
 %% Figure 6: Compare with scores
-% Uses the occupancy matrix P saved in stats_file, i.e. whichever of
-% P_original/P_harmonized was selected above via use_harmonized_occupancies.
+% Runs directly on P (P_original or P_harmonized from step 2b), independent of
+% the condition-comparison statistics in step 3 - so this also works for
+% studies with continuous scores only and no discrete conditions to test.
 
 save_name='Scores_Mode_Stats.mat';
-Scores_vs_Mode_Occupancy(Scores_Table,Key_Modes_KC,results_dir,stats_file,save_name)
+Scores_vs_Mode_Occupancy(P,Scores_Table,Key_Modes_KC,results_dir,save_name)

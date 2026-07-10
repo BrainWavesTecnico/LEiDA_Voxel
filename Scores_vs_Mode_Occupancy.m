@@ -1,6 +1,27 @@
-function Scores_vs_Mode_Occupancy(Scores_Table,Key_Modes_KC,results_dir,stats_file,save_name)
+function Scores_vs_Mode_Occupancy(P,Scores_Table,Key_Modes_KC,results_dir,save_name)
+% Scores_vs_Mode_Occupancy correlates the occupancy of a set of modes with a
+% set of clinical/cognitive scores (partial correlation, controlling for age).
+%
+% P is taken directly as an input (e.g. P_original or P_harmonized from
+% Save_Occupancies_Harmonize) rather than loaded from a LEiDA stats file, so
+% this function does not depend on LEiDA_stats_Voxel_FracOccup_ComBat having
+% been run. This makes it usable for studies with no discrete conditions to
+% compare, only continuous scores to correlate with mode occupancy.
+%
+% INPUT:
+%   P            - Fractional occupancy matrix (N_scans x length(rangeK) x rangeK(end)),
+%                  e.g. P_original or P_harmonized from Save_Occupancies_Harmonize.
+%   Scores_Table : .mat file with the Scores_ADNI table.
+%   Key_Modes_KC : Nx2+ matrix with one row per mode to analyze, [k c ...].
+%   results_dir  : Directory where the figure/CSV/mat outputs are saved.
+%   save_name    : Output .mat filename for the correlation results.
+%
+% NOTE: The set of score columns used (Genetics/Biomarkers/Cognitive_functions
+% indices below) is hardcoded for the ADNI Scores_ADNI table used in Campo et
+% al.; adapt these indices for a different scores table.
+%
+% Author: Joana Cabral, Tecnico, University of Lisbon, joanabcabral@tecnico.ulisboa.pt
 
-load([results_dir stats_file],'P');
 load(Scores_Table,'Scores_ADNI')
 
 Mode_colors=[137 207 240; 227 120 91; 250 221 107; 207 225 185] ./ 256;
@@ -101,12 +122,12 @@ data_rows_flipped = flipud(data_rows);
 T = [header_row; data_rows_flipped];
 
 % Write to CSV as strings (avoids Numbers/Excel truncating small p-values)
-fid = fopen('BraVe_correlations.csv', 'w');
+fid = fopen(fullfile(results_dir, 'BraVe_correlations.csv'), 'w');
 for row = 1:size(T,1)
     fprintf(fid, '%s', strjoin(T(row,:), ','));
     fprintf(fid, '\n');
 end
 fclose(fid);
 
-save(save_name,'P_Mode','Age','Biomarkers','Cognitive_functions','Genetics','Scores_ADNI','Selected_scores','Rho') 
-% 
+save(fullfile(results_dir, save_name),'P_Mode','Age','Biomarkers','Cognitive_functions','Genetics','Scores_ADNI','Selected_scores','Rho')
+%

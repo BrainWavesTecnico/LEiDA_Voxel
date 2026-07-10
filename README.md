@@ -21,13 +21,13 @@ The entry point is [`run_LEiDA_Voxel.m`](run_LEiDA_Voxel.m), which documents and
 | 1 | `Get_EigenVectors_VoxelSpace_Server.m` | Load the preprocessed fMRI NIfTI files, resize them to the mask's voxel space, compute the signal phase (Hilbert transform), and extract the leading eigenvector of the phase coherence matrix at every TR, for every scan. |
 | 2 | `LEiDA_cluster_VoxelMNI10mm.m` | Cluster all leading eigenvectors into a range of K clusters (coupling modes) with K-means (cosine distance), for `mink:maxk`. |
 | 2b | `Save_Occupancies_Harmonize.m` (via `combat/combat.m`) | Compute the fractional occupancy of each mode per scan, and, optionally (`apply_combat`), harmonize it across acquisition sites with ComBat, keeping diagnosis/age/sex/education as covariates of interest. Saves both `P_original` and `P_harmonized`. |
-| 3 | `LEiDA_stats_Voxel_FracOccup_ComBat.m` | Test each mode's occupancy between conditions (Welch's t-test for independent samples, paired permutation test for paired samples), with permutation p-values and Hedge's effect sizes. Runs on either `P_original` or `P_harmonized`, chosen when calling it. |
-| 4 | `Plot_FracOccup_stats.m` | Summary plots of the statistical tests: p-values, mean occupancy barplots, effect sizes. |
-| 5 | `Plot_ClustVoxelCentroid_Pyramid_RSNs.m` | Render a pyramid of all centroids across K, with optional Yeo RSN color overlay and significance markers. |
-| 6 | `Choose_Relevant_Modes.m` | Automatically select the `[k c]` modes that differ most between conditions (significant after multiple-testing correction, minimum effect size), grouping correlated modes. |
-| 7 | `Plot_KeyModes_Slices_Stats.m` | Render each key mode on anatomical slices with mean ± SE occupancy bars per condition. |
-| 8 | `Plot_Mode_TransparentBrain.m` | Detailed 3D rendering of each key mode, including overlap with Yeo Resting-State Networks. |
-| 9 | `Scores_vs_Mode_Occupancy.m` | Partial correlation (controlling for age) between key mode occupancy and clinical/cognitive scores, plotted and exported to CSV. |
+| 3 (optional) | `LEiDA_stats_Voxel_FracOccup_ComBat.m` | Test each mode's occupancy between conditions (Welch's t-test for independent samples, paired permutation test for paired samples), with permutation p-values and Hedge's effect sizes. Runs on either `P_original` or `P_harmonized`, chosen when calling it. Skip for studies with no discrete conditions to compare. |
+| 4 | `Plot_FracOccup_stats.m` | Summary plots of the statistical tests: p-values, mean occupancy barplots, effect sizes. Requires step 3. |
+| 5 | `Plot_ClustVoxelCentroid_Pyramid_RSNs.m` | Render a pyramid of all centroids across K, with optional Yeo RSN color overlay and significance markers. Requires step 3. |
+| 6 | `Choose_Relevant_Modes.m` | Automatically select the `[k c]` modes that differ most between conditions (significant after multiple-testing correction, minimum effect size), grouping correlated modes. Requires step 3; without it, specify `Key_Modes_KC` manually instead. |
+| 7 | `Plot_KeyModes_Slices_Stats.m` | Render each key mode on anatomical slices with mean ± SE occupancy bars per condition. Requires step 3. |
+| 8 | `Plot_Mode_TransparentBrain.m` | Detailed 3D rendering of each key mode, including overlap with Yeo Resting-State Networks. Only needs `cluster_file` and `Key_Modes_KC` — does not require step 3. |
+| 9 | `Scores_vs_Mode_Occupancy.m` | Partial correlation (controlling for age) between key mode occupancy and clinical/cognitive scores, plotted and exported to CSV. Takes the occupancy matrix `P` directly (from step 2b) and `Key_Modes_KC` — does not require step 3, so it works standalone for studies with only continuous scores. |
 
 Figures are saved at each step in the results folder in both `.fig` and `.png`/`.jpg`.
 
@@ -59,7 +59,8 @@ See the header comments in `run_LEiDA_Voxel.m` for the full function reference, 
 
 ## Notes
 
-- `Save_Occupancies_Harmonize.m` saves both the raw (`P_original`) and ComBat-harmonized (`P_harmonized`) occupancies; `run_LEiDA_Voxel.m` exposes a `use_harmonized_occupancies` toggle to pick which one is passed to `LEiDA_stats_Voxel_FracOccup_ComBat.m`. Whichever is passed is saved as `P` inside `stats_file`, so `Scores_vs_Mode_Occupancy.m` (which reads `P` from `stats_file`) automatically uses the same choice.
+- **Studies with only continuous scores, no discrete conditions**: skip step 3 (`LEiDA_stats_Voxel_FracOccup_ComBat`) and steps 4-7 that depend on it. Run steps 0-2b as usual, pick `P = P_original` or `P = P_harmonized`, choose `Key_Modes_KC` manually (e.g. `Key_Modes_KC = [3 4; 5 6]`), then call `Plot_Mode_TransparentBrain(results_dir, cluster_file, Key_Modes_KC)` and `Scores_vs_Mode_Occupancy(P, Scores_Table, Key_Modes_KC, results_dir, save_name)` directly — neither depends on step 3's output.
+- `Save_Occupancies_Harmonize.m` saves both the raw (`P_original`) and ComBat-harmonized (`P_harmonized`) occupancies; `run_LEiDA_Voxel.m` exposes a `use_harmonized_occupancies` toggle to pick which one `P` refers to for the rest of the pipeline (both step 3 and `Scores_vs_Mode_Occupancy.m`).
 - `Scores_vs_Mode_Occupancy.m` uses a fixed set of score-table column indices tailored to the ADNI `Scores_ADNI` table used in Campo et al.; adapt these indices when using a different scores table.
 - `Plot_KeyModes_Slices_Stats.m` additionally expects a study-specific `Scores_ADNI_2177scans.mat` file (for sex-based grouping) in the results directory; this file is not included in this repository.
 
