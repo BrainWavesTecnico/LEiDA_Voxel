@@ -4,8 +4,9 @@ Get_EigenVectors_VoxelSpace_Server
 % Vectors are concatenated acorss all scans ready for clustering.
 %
 % This function loads the fMRI signals aligned to a brain template.
-% Resizes the template to the 10mm3 MNI space and applies a full brain mask. 
-% Gets the Hilbert transform from signals in the brain mask.
+% Resizes the template to the spatial resolution of the brain mask. 
+% To have a reasonable number of voxels of voxels in the brain mask, we use voxels with 10mm3 size, resulting in 1821 voxels of interest.
+% Gets the Hilbert transform from signals in the voxels of interest in the brain mask.
 % Computes the fMRI phase leading eigenvectors for each TR for all participants. 
 %
 % INPUT:
@@ -13,9 +14,9 @@ Get_EigenVectors_VoxelSpace_Server
 % leida_dir     directory where the results from running LEiDA are saved
 %
 % OUTPUT:
-% V1_MNI10mm    leading eigenvectors in MNI 10mm space
+% V1_MNI10mm.mat    leading eigenvectors in MNI 10mm space
 %
-% Author: Joana Cabral, juanitacabral@gmail.com
+% Author: Joana Cabral, joanabcabral@tecnico.ulisboa.pt
 
 % USER INPUT 
 % Main directory where the  fMRI data preprocessed in MNI space is stored as Nifti files (.nii or .nii.gz are stored)
@@ -32,7 +33,7 @@ Mask_file='MNI_10mm3_FullBrain.mat';
 % File to save with the leading eigenvectors
 file_V1     = 'LEiDA_V1_all_MNI10mm_FullMask.mat';    
 
-% Set here the maximum number of volumes in a scan
+% Set here the maximum number of volumes in a scan to allocate space for the entire matrix of eigenvectors
 TimeMax=200;
 
 %%
