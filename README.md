@@ -20,8 +20,8 @@ The entry point is [`run_LEiDA_Voxel.m`](run_LEiDA_Voxel.m), which documents and
 | 0 (optional) | `Mask_Voxels_of_Interest.m` | Build a custom binary voxel mask in MNI space from a set of per-scan brain masks, keeping voxels present in a chosen proportion of scans, at a chosen voxel size. Not needed if using the bundled full-brain mask. |
 | 1 | `Get_EigenVectors_VoxelSpace_Server.m` | Load the preprocessed fMRI NIfTI files, resize them to the mask's voxel space, compute the signal phase (Hilbert transform), and extract the leading eigenvector of the phase coherence matrix at every TR, for every scan. |
 | 2 | `LEiDA_cluster_VoxelMNI10mm.m` | Cluster all leading eigenvectors into a range of K clusters (coupling modes) with K-means (cosine distance), for `mink:maxk`. |
-| 2b | ComBat (inline in `run_LEiDA_Voxel.m`, via `combat/combat.m`) | Compute the fractional occupancy of each mode per scan, then harmonize it across acquisition sites, keeping diagnosis/age/sex/education as covariates of interest. |
-| 3 | `LEiDA_stats_Voxel_FracOccup_ComBat.m` | Test each mode's occupancy between conditions (Welch's t-test for independent samples, paired permutation test for paired samples), with permutation p-values and Hedge's effect sizes. |
+| 2b | `Save_Occupancies_Harmonize.m` (via `combat/combat.m`) | Compute the fractional occupancy of each mode per scan, and, optionally (`apply_combat`), harmonize it across acquisition sites with ComBat, keeping diagnosis/age/sex/education as covariates of interest. Saves both `P_original` and `P_harmonized`. |
+| 3 | `LEiDA_stats_Voxel_FracOccup_ComBat.m` | Test each mode's occupancy between conditions (Welch's t-test for independent samples, paired permutation test for paired samples), with permutation p-values and Hedge's effect sizes. Runs on either `P_original` or `P_harmonized`, chosen when calling it. |
 | 4 | `Plot_FracOccup_stats.m` | Summary plots of the statistical tests: p-values, mean occupancy barplots, effect sizes. |
 | 5 | `Plot_ClustVoxelCentroid_Pyramid_RSNs.m` | Render a pyramid of all centroids across K, with optional Yeo RSN color overlay and significance markers. |
 | 6 | `Choose_Relevant_Modes.m` | Automatically select the `[k c]` modes that differ most between conditions (significant after multiple-testing correction, minimum effect size), grouping correlated modes. |
@@ -38,6 +38,7 @@ run_LEiDA_Voxel.m                    Main pipeline script (documents and runs al
 Mask_Voxels_of_Interest.m            Step 0: build a custom voxel mask
 Get_EigenVectors_VoxelSpace_Server.m Step 1: extract leading eigenvectors from fMRI data
 LEiDA_cluster_VoxelMNI10mm.m         Step 2: K-means clustering
+Save_Occupancies_Harmonize.m         Step 2b: mode occupancy extraction + optional ComBat harmonization
 LEiDA_stats_Voxel_FracOccup_ComBat.m Step 3: statistics on mode occupancy
 Plot_FracOccup_stats.m               Step 4: statistics summary plots
 Plot_ClustVoxelCentroid_Pyramid_RSNs.m  Step 5: centroid pyramid render
@@ -58,6 +59,7 @@ See the header comments in `run_LEiDA_Voxel.m` for the full function reference, 
 
 ## Notes
 
+- `Save_Occupancies_Harmonize.m` saves both the raw (`P_original`) and ComBat-harmonized (`P_harmonized`) occupancies; `run_LEiDA_Voxel.m` exposes a `use_harmonized_occupancies` toggle to pick which one is passed to `LEiDA_stats_Voxel_FracOccup_ComBat.m`. Whichever is passed is saved as `P` inside `stats_file`, so `Scores_vs_Mode_Occupancy.m` (which reads `P` from `stats_file`) automatically uses the same choice.
 - `Scores_vs_Mode_Occupancy.m` uses a fixed set of score-table column indices tailored to the ADNI `Scores_ADNI` table used in Campo et al.; adapt these indices when using a different scores table.
 - `Plot_KeyModes_Slices_Stats.m` additionally expects a study-specific `Scores_ADNI_2177scans.mat` file (for sex-based grouping) in the results directory; this file is not included in this repository.
 

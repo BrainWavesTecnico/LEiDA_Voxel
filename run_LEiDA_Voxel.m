@@ -15,9 +15,12 @@
 %   2. CLUSTER: Cluster all the leading eigenvectors extracted from fMRI scans
 %      into a range of K clusters (coupling modes).
 %   2b. HARMONIZE: Compute the fractional occupancy of each mode for every scan,
-%      and harmonize it across acquisition sites using ComBat.
+%      and, optionally, harmonize it across acquisition sites using ComBat.
+%      Both the original and harmonized occupancies are saved, and downstream
+%      steps can be run on either one.
 %   3. COMPARE CONDITIONS: Perform hypothesis testing between conditions
-%      (permutation testing, with optional bootstrap and Hedge's effect sizes).
+%      (permutation testing, with optional bootstrap and Hedge's effect sizes),
+%      on either the original or the harmonized occupancies.
 %   4. RESULTS: Automatically identify the modes that differ most between
 %      conditions, and visualize their spatial patterns
 %               - as slices with occupancy bar plots
@@ -77,14 +80,28 @@
 %    Example:
 %      [Kmeans_results, rangeK] = LEiDA_cluster_VoxelMNI10mm(data_dir, file_V1, mink, maxk, replicates, results_dir, cluster_file);
 %
-% 2b. Harmonize mode occupancies with ComBat (inline in this script, uses combat/combat.m)
+% 2b. Save_Occupancies_Harmonize (uses combat/combat.m)
 %    - Purpose: Computes the fractional occupancy of each mode for every scan
-%      (for every K), then removes site effects from the occupancies with
-%      ComBat (Johnson et al.), keeping diagnosis/age/sex/education as covariates
-%      of interest. See the "2b. Extract Mode Occupancies..." section below.
+%      (for every K), and, if apply_combat is 1, removes site effects from the
+%      occupancies with ComBat (Johnson et al.), keeping diagnosis/age/sex/
+%      education as covariates of interest. Saves both P_original and
+%      P_harmonized (P_harmonized = P_original when apply_combat is 0), so a
+%      later step can choose which one to run statistics on.
 %    - Requires a Scores table (Scores_Table) with per-scan SITE, AGE_AT_SCAN,
 %      PTGENDER, PTEDUCAT and DX_num columns. This table is study-specific data
 %      and is not included in this repository.
+%
+%    Inputs:
+%      results_dir  : Directory with the cluster file.
+%      cluster_file : Clustering results file name (output of step 2).
+%      Scores_Table : .mat file with the Scores_ADNI table.
+%      apply_combat : 1 to harmonize across sites with ComBat; 0 to skip.
+%      occup_file   : Output file name for the saved occupancies.
+%
+%    Output: [P_original, P_harmonized, rangeK, Scores_ADNI]
+%
+%    Example:
+%      [P_original, P_harmonized, rangeK, Scores_ADNI] = Save_Occupancies_Harmonize(results_dir, cluster_file, Scores_Table, apply_combat, occup_file);
 %
 % 3. LEiDA_stats_Voxel_FracOccup_ComBat
 %    - Purpose: Performs statistical tests (permutation, with optional bootstrap)
@@ -101,7 +118,11 @@
 %      pair              : 0 for independent subjects, 1 for paired tests.
 %      n_permutations    : Number of permutation samples (e.g., 1000).
 %      n_bootstraps      : Number of bootstrap samples (e.g., 0-50).
-%      P                 : Fractional occupancy matrix (raw or ComBat-harmonized).
+%      P                 : Fractional occupancy matrix; pass P_original or
+%                          P_harmonized from step 2b, whichever you want to
+%                          test. Whichever is passed gets saved as P inside
+%                          file_stats, so Scores_vs_Mode_Occupancy (which reads
+%                          P from file_stats) automatically uses the same one.
 %
 %    Example:
 %      LEiDA_stats_Voxel_FracOccup_ComBat(results_dir, cluster_file, stats_file, cond, Index_Conditions, pair, n_permutations, n_bootstraps, P);
@@ -215,10 +236,14 @@
 %     mink = 2; maxk = 20; replicates = 100;
 %     LEiDA_cluster_VoxelMNI10mm(data_dir, file_V1, mink, maxk, replicates, results_dir, cluster_file);
 %
-%   3. Harmonize occupancies and run the statistical analysis:
+%   3. Extract occupancies, harmonize across sites, and run the statistical analysis:
+%     apply_combat = 1; occup_file = 'LEiDA_Occupancies_harmonized.mat';
+%     [P_original, P_harmonized, rangeK, Scores_ADNI] = Save_Occupancies_Harmonize(results_dir, cluster_file, Scores_Table, apply_combat, occup_file);
+%     use_harmonized_occupancies = 1;   % 1: test P_harmonized, 0: test P_original
+%     P = P_harmonized;   % or P_original
 %     cond = {'CN','MCI','DEM'};
 %     Paired_tests = 0; n_permutations = 1000; n_bootstraps = 0;
-%     LEiDA_stats_Voxel_FracOccup_ComBat(results_dir, cluster_file, stats_file, cond, Index_Conditions, Paired_tests, n_permutations, n_bootstraps, P_harmonized);
+%     LEiDA_stats_Voxel_FracOccup_ComBat(results_dir, cluster_file, stats_file, cond, Index_Conditions, Paired_tests, n_permutations, n_bootstraps, P);
 %
 %   4. Generate Figures:
 %     a. Plot statistical results, including all p-values and effect sizes:
@@ -289,74 +314,24 @@ addpath(genpath(leida_dir));
 % Cluster the eigenvectors.
 % LEiDA_cluster_VoxelMNI10mm(results_dir, file_V1, mink, maxk, replicates, results_dir, cluster_file);
 
-%% 2b. Extract Mode Occupancies and correct for site differences
+%% 2b. Extract Mode Occupancies and Harmonize across sites (optional)
 
-% Get Mode occupancies:
-load(fullfile(results_dir, cluster_file));
+occup_file   = 'LEiDA_Occupancies_harmonized.mat';   % File to save original + harmonized occupancies
+apply_combat = 1;   % 1 to harmonize occupancies across sites with ComBat; 0 to skip (P_harmonized = P_original)
 
-n_scans = length(data_info);
-unique_scans=unique(Scan_num);
-
-% --- Extract features as the mode occupancies for all k and c ---
-All_Occupancy = cell(length(rangeK), 1);
-for ki = 1:length(rangeK)
-    k = rangeK(ki);
-    IDX = Kmeans_results{ki}.IDX;
-    Occupancy = zeros(n_scans, k);
-    for s = 1:n_scans
-        Ctime = IDX(Scan_num == unique_scans(s));
-        T  = length(Ctime);
-        for c = 1:k
-            Occupancy(s, c) = sum(Ctime == c) / T;
-        end
-    end
-    All_Occupancy{ki} = Occupancy;
-fprintf('Occupancies for k=%d modes in %d scans\n', k, size(All_Occupancy{ki}, 1));
-end
-
-% Harmonize Occupancies to account for site differences using COMBAT 
-
-load(Scores_Table, 'Scores_ADNI');
-
-% Covariates to remain unchanged 
-age    = double(Scores_ADNI.AGE_AT_SCAN);
-sex    = double(Scores_ADNI.PTGENDER == "Male");
-edu    = double(Scores_ADNI.PTEDUCAT);
-diagnose = Scores_ADNI.DX_num;
-mod = [diagnose, age, sex, edu]; 
-
-% Variable to harmonize
-site   = double(Scores_ADNI.SITE)';
-
-% --- ComBat ---
-All_Occupancies_harmonized = cell(length(rangeK), 1);
-for ki = 2:length(rangeK)
-    fprintf('ComBat for k=%d\n', rangeK(ki))
-    data_to_harmonize = All_Occupancy{ki}';   % k x n_scans
-    All_Occupancies_harmonized{ki} = combat(data_to_harmonize, site, mod, 1)';
-
-end
-
-% --- Build harmonized P in the format for the rest of the analysis
-P_harmonized = zeros(n_scans, length(rangeK), rangeK(end));
-P_original = zeros(n_scans, length(rangeK), rangeK(end));
-
-for ki = 1:length(rangeK)
-    k = rangeK(ki);    
-    if ki==1
-        P_original(:,ki,1:ki)=All_Occupancy{ki};  
-        P_harmonized(:,ki,1:ki)=All_Occupancy{ki}; 
-    else
-        P_original(:,ki,1:ki)=All_Occupancy{ki};  
-        P_harmonized(:,ki,1:ki)=All_Occupancies_harmonized{ki}; 
-    end
-end
-
-save(fullfile(results_dir, 'LEiDA_Occupancies_harmonized.mat'), 'P_original', 'P_harmonized', 'Scores_ADNI', 'rangeK', '-v7.3')
-
-disp('Occupancies harmonized for site differences')
+[P_original, P_harmonized, rangeK, Scores_ADNI] = ...
+    Save_Occupancies_Harmonize(results_dir, cluster_file, Scores_Table, apply_combat, occup_file);
 
 %% 3. Statistical Analysis of Mode Occupancies between conditions
+
+% Choose whether the statistics (and, via stats_file, the score correlations)
+% run on the raw occupancies or the ComBat site-harmonized ones:
+use_harmonized_occupancies = 1;   % 1: use P_harmonized; 0: use P_original
+if use_harmonized_occupancies
+    P = P_harmonized;
+else
+    P = P_original;
+end
 
 % --- Definir condições ---
 Index_Conditions = Scores_ADNI.DX_num+1; % (+ 1 so conditions are 1,2,3)
@@ -374,7 +349,7 @@ n_permutations = 100;
 n_bootstraps   = 0;
 
 LEiDA_stats_Voxel_FracOccup_ComBat(results_dir, cluster_file, stats_file, ...
-    Condition_tags, Index_Conditions, Paired_tests, n_permutations, n_bootstraps, P_harmonized);
+    Condition_tags, Index_Conditions, Paired_tests, n_permutations, n_bootstraps, P);
 
 % Statistical Report of Fractional Occupancy across conditions
 Plot_FracOccup_stats(results_dir, stats_file);
@@ -426,6 +401,8 @@ Plot_KeyModes_Slices_Stats(results_dir, cluster_file, stats_file,save_name,Key_M
 Plot_Mode_TransparentBrain(results_dir, cluster_file, Key_Modes_KC);
 
 %% Figure 6: Compare with scores
+% Uses the occupancy matrix P saved in stats_file, i.e. whichever of
+% P_original/P_harmonized was selected above via use_harmonized_occupancies.
 
 save_name='Scores_Mode_Stats.mat';
 Scores_vs_Mode_Occupancy(Scores_Table,Key_Modes_KC,results_dir,stats_file,save_name)
