@@ -1,22 +1,20 @@
 function Plot_Mode_TransparentBrain(results_dir, cluster_file, Key_Modes_KC)
-% Plot_Modes_TransparentBrain provides an in-depth analysis of a selected mode (centroid)
-% from the clustering solution by rendering it in 3D and computing its overlap with
-% Yeo's functional networks.
+% Plot_Mode_TransparentBrain provides an in-depth analysis of one or more selected
+% modes (centroids) from the clustering solution by rendering each in 3D and
+% computing its overlap with Yeo's functional networks.
 %
 % The function performs the following operations:
-%   - Loads clustering and statistical results.
-%   - Sorts the centroids by the occupancy in the control condition.
-%   - Selects and reshapes the chosen centroid (mode) into a 3D volume.
+%   - Loads clustering results.
+%   - Selects and reshapes each chosen centroid (mode) into a 3D volume.
 %   - Computes the correlation between the mode and each of 7 RSNs.
 %   - Renders the mode in 3D, first as a purple patch on a transparent brain,
 %     and then colors the mode in cortex alone using RSN colors.
 %
 % INPUT:
-%   results_dir  - Directory containing the cluster and stats files.
-%   file_clusters- Filename with clustering results (centroids, mask, etc.).
-%   file_stats   - Filename with statistical results.
-%   k            - Number of FC states (K) for the clustering solution.
-%   c            - The index of the selected mode (centroid) to visualize.
+%   results_dir  - Directory containing the cluster file.
+%   cluster_file - Filename with clustering results (centroids, mask, etc.).
+%   Key_Modes_KC - Nx2+ matrix with one row per mode, [k c ...], as returned
+%                  by Choose_Relevant_Modes (or built manually).
 %
 % OUTPUT:
 %   Displays multiple 3D renderings and saves figures.

@@ -1,19 +1,25 @@
 function Plot_KeyModes_Slices_Stats(results_dir, cluster_file, stats_file,save_name,Key_Modes_KC)
-% Plot_KModes_TransparentBrain renders the centroids and displays error bars for 
-% a selected K value (number of FC states) on a transparent brain representation.
+% Plot_KeyModes_Slices_Stats renders each selected [k c] key mode and displays
+% mean +/- SE fractional-occupancy bars per condition, on anatomical slices.
 %
 % This function:
 %   - Loads clustering and statistical data.
 %   - Sorts the centroids by their occupancy in the control condition.
 %   - Plots a barplot with error bars (for each condition) for each centroid.
-%   - Renders the corresponding centroid as a 3D image using transparent brain masks 
+%   - Renders the corresponding centroid as a 3D image using transparent brain masks
 %     and anatomical slices in axial, coronal, and sagittal views.
 %
 % INPUT:
-%   k           - Selected number of FC states (K) to analyze.
-%   results_dir - Directory where the cluster and stats files are stored.
-%   file_clusters - Filename containing clustering results (e.g., centroids, mask).
-%   file_stats  - Filename containing statistical results (occupancy, p-values, etc.).
+%   results_dir  - Directory where the cluster and stats files are stored.
+%   cluster_file - Filename containing clustering results (e.g., centroids, mask).
+%   stats_file   - Filename containing statistical results (occupancy, p-values, etc.).
+%   save_name    - Base name used when saving the output figure.
+%   Key_Modes_KC - Nx2+ matrix with one row per key mode, [k c ...], as returned
+%                  by Choose_Relevant_Modes (or built manually).
+%
+% NOTE: this function also loads a hardcoded 'Scores_ADNI_2177scans.mat' from
+% results_dir to split subjects by sex; that file is study-specific and not
+% included in this repository.
 %
 % Author: Joana Cabral, University of Lisbon,
 % joanabcabral@tecnico.ulisboapt
