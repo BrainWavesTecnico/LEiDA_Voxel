@@ -63,4 +63,4 @@ See the header comments in `run_LEiDA_Voxel.m` for the full function reference, 
 
 ## Author
 
-Joana Cabral, University of Minho / University of Lisbon — juanitacabral@gmail.com
+Joana Cabral, Tecnico, University of Lisbon — joanabcabral@tecnico.ulisboa.pt

@@ -19,7 +19,7 @@ function Plot_Mode_TransparentBrain(results_dir, cluster_file, Key_Modes_KC)
 % OUTPUT:
 %   Displays multiple 3D renderings and saves figures.
 %
-% Author: Joana Cabral, Universidade do Minho, juanitacabral@gmail.com
+% Author: Joana Cabral, Tecnico, University of Lisbon, joanabcabral@tecnico.ulisboa.pt
 % Funded by BPI-LaCaixa Foundation
 % and Portuguese Foundation for Science and Technology
 

@@ -21,8 +21,7 @@ function Plot_KeyModes_Slices_Stats(results_dir, cluster_file, stats_file,save_n
 % results_dir to split subjects by sex; that file is study-specific and not
 % included in this repository.
 %
-% Author: Joana Cabral, University of Lisbon,
-% joanabcabral@tecnico.ulisboapt
+% Author: Joana Cabral, Tecnico, University of Lisbon, joanabcabral@tecnico.ulisboa.pt
  
 %% Load Required Data
 % Load clustering centroids, rangeK, brain mask, and voxel indices.
