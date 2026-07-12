@@ -35,8 +35,10 @@
 %      showing the clustering results, statistical outcomes, and
 %      3D renderings of cluster centroids on brain space.
 %
-% Used in: Campo et al., Cognitive reserve linked to network-specific
-% brain-ventricle coupling modes, 2025
+% Used in: Cognitive function linked to temporal occupancy of Brain-Ventricle
+% (BraVe) modes. Campo, Miguel, Brattico, Nigro, Tafuri, Logroscino, Cabral
+% and the Alzheimer's Disease Neuroimaging Initiative (ADNI).
+% bioRxiv 2025.01.04.631289; doi: https://doi.org/10.1101/2025.01.04.631289
 %
 %
 % FUNCTIONS AND THEIR USAGE:

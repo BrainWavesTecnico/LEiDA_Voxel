@@ -4,7 +4,7 @@ Leading Eigenvector Dynamics Analysis (LEiDA) applied to voxels defined in 3D vo
 
 This is a MATLAB pipeline to analyze eigenvector dynamics in fMRI data using LEiDA, working directly in voxel space (a full-brain or custom voxel mask) instead of a fixed brain parcellation. It clusters recurrent BOLD phase-coherence patterns into coupling modes, computes their fractional occupancy per scan, harmonizes occupancy across acquisition sites with ComBat, and tests for differences between conditions (with permutation/bootstrap statistics), visualizing results as 3D brain renders and correlating key modes with clinical/cognitive scores.
 
-Used in: Campo et al., *Cognitive reserve linked to network-specific brain-ventricle coupling modes*, 2025.
+Used in: *Cognitive function linked to temporal occupancy of Brain-Ventricle (BraVe) modes*. Campo, Miguel, Brattico, Nigro, Tafuri, Logroscino, Cabral and the Alzheimer's Disease Neuroimaging Initiative (ADNI). bioRxiv 2025.01.04.631289; doi: [https://doi.org/10.1101/2025.01.04.631289](https://doi.org/10.1101/2025.01.04.631289).
 
 ## Requirements
 
