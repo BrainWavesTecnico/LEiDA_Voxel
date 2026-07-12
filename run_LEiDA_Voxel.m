@@ -163,7 +163,7 @@
 %      Plot_ClustVoxelCentroid_Pyramid_RSNs(results_dir, cluster_file, stats_file, 'Centroid_Pyramid_Magenta_CN_AD', 0, 'SideView', 3, 1);
 %
 % 6. Choose_Relevant_Modes
-%    - Purpose: Automatically selects the [k c] modes that differ most between
+%    - Purpose: Automatically selects the [ki c] modes that differ most between
 %               conditions (significant after multiple-testing correction, with
 %               a minimum effect size), and groups correlated modes together.
 %
@@ -173,6 +173,12 @@
 %      stats_file  : Statistics file name.
 %
 %    Output: [Key_Modes_KC, Key_Centroids]
+%      Key_Modes_KC is an Nx12 matrix, one row per key mode: [ki, c, slope, ...].
+%      IMPORTANT: ki is the POSITION of the clustering solution in rangeK
+%      (i.e. Kmeans_results{ki}, P(:,ki,:)), NOT the literal number of
+%      clusters - e.g. if rangeK = 2:20, ki=1 means K=2 clusters, ki=2 means
+%      K=3, etc. If you build Key_Modes_KC manually instead of via this
+%      function (see step 4 below), use the same ki convention.
 %
 %    Example:
 %      Key_Modes_KC = Choose_Relevant_Modes(results_dir, cluster_file, stats_file);
@@ -186,7 +192,8 @@
 %      cluster_file : Clustering results file name.
 %      stats_file   : Statistical results file name.
 %      save_name    : Base name for saving the output figure.
-%      Key_Modes_KC : Nx2+ matrix with one row per key mode, [k c ...].
+%      Key_Modes_KC : Nx3+ matrix, [ki c slope ...] - see step 6 above for the
+%                     ki (position, not literal K) convention.
 %      Scores_Table : .mat file with the Scores_ADNI table (used to split by sex).
 %
 %    Example:
@@ -199,7 +206,8 @@
 %    Inputs:
 %      results_dir  : Directory with result files.
 %      cluster_file : Clustering results file name.
-%      Key_Modes_KC : Nx2+ matrix with one row per mode, [k c ...].
+%      Key_Modes_KC : Nx2+ matrix, [ki c ...] - see step 6 above for the ki
+%                     (position, not literal K) convention.
 %
 %    Example:
 %      Plot_Mode_TransparentBrain(results_dir, cluster_file, Key_Modes_KC);
@@ -221,7 +229,8 @@
 %    Inputs:
 %      P            : Fractional occupancy matrix (P_original or P_harmonized).
 %      Scores_Table : .mat file with the Scores_ADNI table.
-%      Key_Modes_KC : Nx2+ matrix with one row per key mode, [k c ...].
+%      Key_Modes_KC : Nx2+ matrix, [ki c ...] - see step 6 above for the ki
+%                     (position, not literal K) convention.
 %      results_dir  : Directory where the figure/CSV/mat outputs are saved.
 %      save_name    : Output .mat filename for the correlation results.
 %
@@ -272,7 +281,8 @@
 %
 %     c. Automatically select and plot the key modes that differ between
 %        conditions (requires step 4). Without step 4, specify Key_Modes_KC
-%        manually instead, e.g. Key_Modes_KC = [3 4; 5 6]:
+%        manually instead, e.g. Key_Modes_KC = [2 4; 4 6] (1st column is the
+%        POSITION in rangeK, not the literal K - see step 6's docs above):
 %        Key_Modes_KC = Choose_Relevant_Modes(results_dir, cluster_file, stats_file);
 %        Plot_KeyModes_Slices_Stats(results_dir, cluster_file, stats_file, 'Fig1_Key_modes', Key_Modes_KC, Scores_Table);
 %
@@ -408,15 +418,19 @@ Key_Modes_KC = Choose_Relevant_Modes(results_dir, cluster_file, stats_file);
 
 % OR
 
-% Select all Modes for a given K
-% k=8;
-% Key_Modes_KC=[ones(1,k)*k;1:k]';
+% Select all Modes for a given K (e.g. K=8 clusters). Key_Modes_KC's 1st
+% column must be the POSITION of that K in rangeK, not the literal K itself:
+% K_wanted = 8;
+% ki = find(rangeK == K_wanted);
+% Key_Modes_KC=[ones(1,K_wanted)*ki; 1:K_wanted]';
 
 % OR
 
-% Make your own selection in pairs [k c] (does not require step 3 at all,
-% e.g. for studies with only continuous scores and no discrete conditions):
-% Key_Modes_KC=[[3 4];[5 6];];
+% Make your own selection in pairs [ki c] (does not require step 3 at all,
+% e.g. for studies with only continuous scores and no discrete conditions).
+% ki is the POSITION in rangeK, not the literal K - e.g. with rangeK=2:20,
+% ki=2 means K=3 clusters. Use find(rangeK==K_wanted) to convert, as above:
+% Key_Modes_KC=[[2 4];[4 6];];
 
 %% FIGURE 1. Plot the key modes differing between conditions 
 

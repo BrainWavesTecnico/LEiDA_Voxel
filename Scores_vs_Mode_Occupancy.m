@@ -12,7 +12,10 @@ function Scores_vs_Mode_Occupancy(P,Scores_Table,Key_Modes_KC,results_dir,save_n
 %   P            - Fractional occupancy matrix (N_scans x length(rangeK) x rangeK(end)),
 %                  e.g. P_original or P_harmonized from Save_Occupancies_Harmonize.
 %   Scores_Table : .mat file with the Scores_ADNI table.
-%   Key_Modes_KC : Nx2+ matrix with one row per mode to analyze, [k c ...].
+%   Key_Modes_KC : Nx2+ matrix with one row per mode to analyze, [ki c ...].
+%                  ki is the POSITION of the clustering solution in rangeK
+%                  (i.e. P's 2nd dimension index), NOT the literal number of
+%                  clusters - e.g. if rangeK = 2:20, ki=1 means K=2 clusters.
 %   results_dir  : Directory where the figure/CSV/mat outputs are saved.
 %   save_name    : Output .mat filename for the correlation results.
 %

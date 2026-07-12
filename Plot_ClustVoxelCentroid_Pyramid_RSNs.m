@@ -194,9 +194,9 @@ for k = 1:length(rangeK)
          mean_P_cond = zeros(1, n_Cond);
          ste = zeros(1, n_Cond);
          for j = 1:n_Cond
-             P_cond{j} = P(Index_Conditions == j, rangeK == k, Centroid);
-             mean_P_cond(j) = nanmean(P(Index_Conditions == j, rangeK == k, Centroid));
-             ste(j) = std(P(Index_Conditions == j, rangeK == k, Centroid)) / sqrt(numel(P(Index_Conditions == j, rangeK == k, Centroid)));
+             P_cond{j} = P(Index_Conditions == j, k, Centroid);
+             mean_P_cond(j) = nanmean(P(Index_Conditions == j, k, Centroid));
+             ste(j) = std(P(Index_Conditions == j, k, Centroid)) / sqrt(numel(P(Index_Conditions == j, k, Centroid)));
          end
          hold on
          if pval <= (0.05 / sum(rangeK))

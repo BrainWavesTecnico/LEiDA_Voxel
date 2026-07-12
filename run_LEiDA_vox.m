@@ -94,19 +94,20 @@ if isempty(Key_Modes_KC)
     % Expected with a reduced demo sample: statistical power may be too low
     % for any mode to survive the significance threshold. Fall back to a
     % fixed selection (mid-range K) so the figure steps still produce output,
-    % computing the same [k c slope] format Plot_KeyModes_Slices_Stats expects.
+    % computing the same [ki c slope] format Plot_KeyModes_Slices_Stats expects
+    % (ki is the POSITION in rangeK, not the literal number of clusters).
     warning('run_LEiDA_vox:noSignificantModes', ...
         ['No mode survived the significance threshold on this demo subsample; ' ...
          'falling back to a fixed selection of modes for illustration.']);
-    k_demo = rangeK(min(4, length(rangeK)));
-    n_demo = min(3, k_demo);
+    ki_demo = min(4, length(rangeK));
+    n_demo = min(3, rangeK(ki_demo));
     Key_Modes_KC = zeros(n_demo, 3);
     for m = 1:n_demo
         mean_P_cond = zeros(1, length(Condition_tags));
         for j = 1:length(Condition_tags)
-            mean_P_cond(j) = nanmean(P(Index_Conditions == j, rangeK == k_demo, m));
+            mean_P_cond(j) = nanmean(P(Index_Conditions == j, ki_demo, m));
         end
-        Key_Modes_KC(m,:) = [k_demo, m, mean_P_cond(end) - mean_P_cond(1)];
+        Key_Modes_KC(m,:) = [ki_demo, m, mean_P_cond(end) - mean_P_cond(1)];
     end
 end
 
