@@ -31,7 +31,7 @@ function [P_original, P_harmonized, rangeK, Scores_ADNI] = Save_Occupancies_Harm
 %   [P_original, P_harmonized, rangeK, Scores_ADNI] = ...
 %       Save_Occupancies_Harmonize(results_dir, cluster_file, Scores_Table, 1, 'LEiDA_Occupancies_harmonized.mat');
 %
-% Author: Joana Cabral, Tecnico, University of Lisbon, joanabcabral@tecnico.ulisboa.pt
+% Author: Joana Cabral, University of Lisbon, joanabcabral@tecnico.ulisboa.pt
 
 %% Load clustering results
 load([results_dir cluster_file], 'Kmeans_results', 'rangeK', 'Scan_num', 'data_info');

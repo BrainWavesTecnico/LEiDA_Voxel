@@ -29,7 +29,7 @@ function run_LEiDA_vox(data_dir, results_dir)
 % Example (from within a Code Ocean capsule, cwd = code/):
 %   run_LEiDA_vox();
 %
-% Author: Joana Cabral, Tecnico, University of Lisbon, joanabcabral@tecnico.ulisboa.pt
+% Author: Joana Cabral, University of Lisbon, joanabcabral@tecnico.ulisboa.pt
 
 if nargin < 1 || isempty(data_dir),    data_dir    = '../data/';    end
 if nargin < 2 || isempty(results_dir), results_dir = '../results/'; end

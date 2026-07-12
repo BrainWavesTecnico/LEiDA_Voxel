@@ -20,7 +20,7 @@
 %     elsewhere in this pipeline (e.g. run_LEiDA_Voxel.m: Index_Conditions
 %     = Scores_ADNI.DX_num + 1).
 %
-% Author: Joana Cabral, Tecnico, University of Lisbon, joanabcabral@tecnico.ulisboa.pt
+% Author: Joana Cabral, University of Lisbon, joanabcabral@tecnico.ulisboa.pt
 
 %% USER INPUT - edit to match your files/columns
 full_data_dir   = '/path/to/your/full/results/';   % where the full-cohort files live

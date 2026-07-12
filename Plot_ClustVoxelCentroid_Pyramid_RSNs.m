@@ -19,7 +19,7 @@ function Plot_ClustVoxelCentroid_Pyramid_RSNs(results_dir, file_clusters, stats_
 % OUTPUT:
 %   Fig           - A figure rendering all the centroids, saved in .fig and .jpg
 %
-% Author: Joana Cabral, Tecnico, University of Lisbon, joanabcabral@tecnico.ulisboa.pt
+% Author: Joana Cabral, University of Lisbon, joanabcabral@tecnico.ulisboa.pt
 % Version from 9 April 2025
 
 %% Load Required Data

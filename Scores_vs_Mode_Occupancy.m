@@ -23,7 +23,7 @@ function Scores_vs_Mode_Occupancy(P,Scores_Table,Key_Modes_KC,results_dir,save_n
 % indices below) is hardcoded for the ADNI Scores_ADNI table used in Campo et
 % al.; adapt these indices for a different scores table.
 %
-% Author: Joana Cabral, Tecnico, University of Lisbon, joanabcabral@tecnico.ulisboa.pt
+% Author: Joana Cabral, University of Lisbon, joanabcabral@tecnico.ulisboa.pt
 
 load(Scores_Table,'Scores_ADNI')
 

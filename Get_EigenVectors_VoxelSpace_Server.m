@@ -15,7 +15,7 @@
 % OUTPUT:
 % V1_MNI10mm    leading eigenvectors in MNI 10mm space
 %
-% Author: Joana Cabral, Tecnico, University of Lisbon, joanabcabral@tecnico.ulisboa.pt
+% Author: Joana Cabral, University of Lisbon, joanabcabral@tecnico.ulisboa.pt
 
 % USER INPUT 
 % Main directory where the  fMRI data preprocessed in MNI space is stored as Nifti files (.nii or .nii.gz are stored)

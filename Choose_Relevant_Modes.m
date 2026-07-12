@@ -22,7 +22,7 @@ function [Key_Modes_KC, Key_Centroids] = Choose_Relevant_Modes(results_dir, clus
 %                    occupancy change between the last and first condition.
 %   Key_Centroids  - Corresponding centroid vectors, one row per key mode.
 %
-% Author: Joana Cabral, Tecnico, University of Lisbon, joanabcabral@tecnico.ulisboa.pt
+% Author: Joana Cabral, University of Lisbon, joanabcabral@tecnico.ulisboa.pt
 
 % Function to detect the most relevant modes after statistical analysis
 

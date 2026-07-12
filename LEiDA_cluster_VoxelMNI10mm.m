@@ -22,7 +22,7 @@ function [Kmeans_results, rangeK] = LEiDA_cluster_VoxelMNI10mm(data_dir, file_V1
 %                       .C   - Cluster centroids (functional connectivity patterns)
 %   rangeK         - Vector containing the range of cluster numbers (K values) used.
 %
-% Authors: Joana Cabral, Tecnico, University of Lisbon, joanabcabral@tecnico.ulisboa.pt
+% Authors: Joana Cabral, University of Lisbon, joanabcabral@tecnico.ulisboa.pt
 %          Miguel Farinha, ICVS/2CA-Braga, miguel.farinha@ccabraga.pt
 
 % Display a header message to indicate the start of clustering

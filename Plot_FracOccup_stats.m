@@ -18,7 +18,7 @@ function Plot_FracOccup_stats(results_dir, stats_file)
 % OUTPUT:
 %   The function creates and saves figures to disk (both PNG and FIG formats).
 %
-% Author: Joana Cabral, Tecnico, University of Lisbon, joanabcabral@tecnico.ulisboa.pt
+% Author: Joana Cabral, University of Lisbon, joanabcabral@tecnico.ulisboa.pt
 
 %% Load Required Data
 % Load condition labels, fractional occupancy matrix (P), p-values (P_pval), index map,

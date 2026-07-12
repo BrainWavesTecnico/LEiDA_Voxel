@@ -26,7 +26,7 @@ function Plot_KeyModes_Slices_Stats(results_dir, cluster_file, stats_file,save_n
 %   Scores_Table - .mat file with the Scores_ADNI table (used only to split
 %                  subjects by sex, via the PTGENDER column).
 %
-% Author: Joana Cabral, Tecnico, University of Lisbon, joanabcabral@tecnico.ulisboa.pt
+% Author: Joana Cabral, University of Lisbon, joanabcabral@tecnico.ulisboa.pt
 
 %% Load Required Data
 % Load clustering centroids, rangeK, brain mask, and voxel indices.

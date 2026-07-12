@@ -80,4 +80,4 @@ ComBat harmonization is off by default in the capsule (`apply_combat = 0` inside
 
 ## Author
 
-Joana Cabral, Tecnico, University of Lisbon — joanabcabral@tecnico.ulisboa.pt
+Joana Cabral, University of Lisbon — joanabcabral@tecnico.ulisboa.pt

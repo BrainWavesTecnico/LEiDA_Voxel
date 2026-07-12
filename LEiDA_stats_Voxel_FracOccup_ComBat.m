@@ -27,7 +27,7 @@ function LEiDA_stats_Voxel_FracOccup_ComBat(results_dir, file_cluster, file_stat
 %   cond, rangeK, file_cluster, Index_Conditions, pair,
 %   condRow, condCol, n_bootstraps, n_permutations.
 %
-% Authors: Joana Cabral, Tecnico, University of Lisbon, joanabcabral@tecnico.ulisboa.pt
+% Authors: Joana Cabral, University of Lisbon, joanabcabral@tecnico.ulisboa.pt
 %          Miguel Farinha, ICVS/2CA-Braga, miguel.farinha@ccabraga.pt
 
 %% Load clustering parameters
