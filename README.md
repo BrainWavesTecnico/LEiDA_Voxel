@@ -36,6 +36,7 @@ Figures are saved at each step in the results folder in both `.fig` and `.png`/`
 ```
 run_LEiDA_Voxel.m                    Main pipeline script (documents and runs all steps)
 run_LEiDA_vox.m                      Code Ocean capsule entry point (steps 2-4, from pre-extracted eigenvectors)
+Select_Demo_Subsample.m              One-off local script: build a balanced demo subsample for the capsule's data/
 Mask_Voxels_of_Interest.m            Step 0: build a custom voxel mask
 Get_EigenVectors_VoxelSpace_Server.m Step 1: extract leading eigenvectors from fMRI data
 LEiDA_cluster_VoxelMNI10mm.m         Step 2: K-means clustering
@@ -62,7 +63,7 @@ See the header comments in `run_LEiDA_Voxel.m` for the full function reference, 
 
 [`run_LEiDA_vox.m`](run_LEiDA_vox.m) is a batch entry point (a function, not a script with hardcoded personal paths) for reproducing the pipeline as a Code Ocean capsule, starting from already-extracted leading eigenvectors (i.e. skipping step 0/1, which need the raw fMRI NIfTI files):
 
-1. Extract the leading eigenvectors from a small demo subsample of scans (e.g. 100 out of the full cohort) on your own machine with `Get_EigenVectors_VoxelSpace_Server.m`, and also subset your `Scores_ADNI` table to the same scans (same columns, fewer rows).
+1. On your own machine, with the full cohort's already-extracted eigenvectors and `Scores_ADNI` table, run [`Select_Demo_Subsample.m`](Select_Demo_Subsample.m) to pick a small, balanced, unique-participant demo subsample (e.g. 30 scans per condition) and save the two demo files.
 2. In the capsule, put those two files in `data/` (named to match `file_V1`/`Scores_Table` at the top of `run_LEiDA_vox.m`, or edit those two lines to match your filenames).
 3. Put all the `.m` files (including `combat/` and `utilities/`) in `code/`.
 4. `results/` is written to automatically; call `run_LEiDA_vox()` with no arguments and it clusters K = 2:20, extracts occupancies, runs the condition statistics, and saves every figure there.
