@@ -35,6 +35,7 @@ Figures are saved at each step in the results folder in both `.fig` and `.png`/`
 
 ```
 run_LEiDA_Voxel.m                    Main pipeline script (documents and runs all steps)
+run_LEiDA_vox.m                      Code Ocean capsule entry point (steps 2-4, from pre-extracted eigenvectors)
 Mask_Voxels_of_Interest.m            Step 0: build a custom voxel mask
 Get_EigenVectors_VoxelSpace_Server.m Step 1: extract leading eigenvectors from fMRI data
 LEiDA_cluster_VoxelMNI10mm.m         Step 2: K-means clustering
@@ -57,12 +58,23 @@ utilities/                           Colormaps, MNI masks, Yeo RSN parcellation,
 
 See the header comments in `run_LEiDA_Voxel.m` for the full function reference, input/output descriptions, and a worked example of each step.
 
+## Code Ocean capsule
+
+[`run_LEiDA_vox.m`](run_LEiDA_vox.m) is a batch entry point (a function, not a script with hardcoded personal paths) for reproducing the pipeline as a Code Ocean capsule, starting from already-extracted leading eigenvectors (i.e. skipping step 0/1, which need the raw fMRI NIfTI files):
+
+1. Extract the leading eigenvectors from a small demo subsample of scans (e.g. 100 out of the full cohort) on your own machine with `Get_EigenVectors_VoxelSpace_Server.m`, and also subset your `Scores_ADNI` table to the same scans (same columns, fewer rows).
+2. In the capsule, put those two files in `data/` (named to match `file_V1`/`Scores_Table` at the top of `run_LEiDA_vox.m`, or edit those two lines to match your filenames).
+3. Put all the `.m` files (including `combat/` and `utilities/`) in `code/`.
+4. `results/` is written to automatically; call `run_LEiDA_vox()` with no arguments and it clusters K = 2:20, extracts occupancies, runs the condition statistics, and saves every figure there.
+
+ComBat harmonization is off by default in the capsule (`apply_combat = 0` inside `run_LEiDA_vox.m`) since a small demo subsample is unlikely to have enough scans per site for reliable harmonization — turn it on if your demo data spans multiple well-populated sites. If no mode survives the significance threshold on the reduced sample (likely with far fewer scans than the full study), the driver falls back to a fixed mid-K mode selection so the figure-generation steps still produce output, and logs a warning explaining why.
+
 ## Notes
 
 - **Studies with only continuous scores, no discrete conditions**: skip step 3 (`LEiDA_stats_Voxel_FracOccup_ComBat`) and steps 4-7 that depend on it. Run steps 0-2b as usual, pick `P = P_original` or `P = P_harmonized`, choose `Key_Modes_KC` manually (e.g. `Key_Modes_KC = [3 4; 5 6]`), then call `Plot_Mode_TransparentBrain(results_dir, cluster_file, Key_Modes_KC)` and `Scores_vs_Mode_Occupancy(P, Scores_Table, Key_Modes_KC, results_dir, save_name)` directly — neither depends on step 3's output.
 - `Save_Occupancies_Harmonize.m` saves both the raw (`P_original`) and ComBat-harmonized (`P_harmonized`) occupancies; `run_LEiDA_Voxel.m` exposes a `use_harmonized_occupancies` toggle to pick which one `P` refers to for the rest of the pipeline (both step 3 and `Scores_vs_Mode_Occupancy.m`).
 - `Scores_vs_Mode_Occupancy.m` uses a fixed set of score-table column indices tailored to the ADNI `Scores_ADNI` table used in Campo et al.; adapt these indices when using a different scores table.
-- `Plot_KeyModes_Slices_Stats.m` additionally expects a study-specific `Scores_ADNI_2177scans.mat` file (for sex-based grouping) in the results directory; this file is not included in this repository.
+- `Plot_KeyModes_Slices_Stats.m` additionally takes `Scores_Table` (used for sex-based grouping via `PTGENDER`).
 
 ## Author
 

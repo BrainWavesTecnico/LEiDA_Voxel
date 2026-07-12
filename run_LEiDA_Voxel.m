@@ -187,9 +187,10 @@
 %      stats_file   : Statistical results file name.
 %      save_name    : Base name for saving the output figure.
 %      Key_Modes_KC : Nx2+ matrix with one row per key mode, [k c ...].
+%      Scores_Table : .mat file with the Scores_ADNI table (used to split by sex).
 %
 %    Example:
-%      Plot_KeyModes_Slices_Stats(results_dir, cluster_file, stats_file, save_name, Key_Modes_KC);
+%      Plot_KeyModes_Slices_Stats(results_dir, cluster_file, stats_file, save_name, Key_Modes_KC, Scores_Table);
 %
 % 8. Plot_Mode_TransparentBrain
 %    - Purpose: Provides detailed 3D rendering for each selected coupling mode,
@@ -273,7 +274,7 @@
 %        conditions (requires step 4). Without step 4, specify Key_Modes_KC
 %        manually instead, e.g. Key_Modes_KC = [3 4; 5 6]:
 %        Key_Modes_KC = Choose_Relevant_Modes(results_dir, cluster_file, stats_file);
-%        Plot_KeyModes_Slices_Stats(results_dir, cluster_file, stats_file, 'Fig1_Key_modes', Key_Modes_KC);
+%        Plot_KeyModes_Slices_Stats(results_dir, cluster_file, stats_file, 'Fig1_Key_modes', Key_Modes_KC, Scores_Table);
 %
 %     d. Detailed 3D visualization of the key modes, with RSN overlap
 %        (only requires cluster_file and Key_Modes_KC, not step 4):
@@ -420,7 +421,7 @@ Key_Modes_KC = Choose_Relevant_Modes(results_dir, cluster_file, stats_file);
 %% FIGURE 1. Plot the key modes differing between conditions 
 
 save_name = 'Fig1_Key_modes_Slice_Occupancy_bars_';
-Plot_KeyModes_Slices_Stats(results_dir, cluster_file, stats_file,save_name,Key_Modes_KC)
+Plot_KeyModes_Slices_Stats(results_dir, cluster_file, stats_file,save_name,Key_Modes_KC,Scores_Table)
 
 %% FIGURE 3. Plot detailed visualization of Key Modes and get the list of brain areas involved.
 

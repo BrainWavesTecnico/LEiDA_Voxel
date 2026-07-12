@@ -10,7 +10,10 @@ load([results_dir stats_file], 'P', 'P_pval', 'cond', 'condCol', 'condRow', 'Ind
 
 P_pval_sig_sum=squeeze(sum(P_pval< (0.05 / sum(rangeK)/ 3/2) & P_pval>0 & effectsize> 0.35));
 
-[K, c]=ind2sub([20, 20],find(P_pval_sig_sum));
+% NOTE: ind2sub must use P_pval_sig_sum's actual size (length(rangeK) x rangeK(end)).
+% A previous version hardcoded [20, 20], which only matched when rangeK == 1:20;
+% for any other mink/maxk it silently produced wrong (K,c) subscripts.
+[K, c]=ind2sub(size(P_pval_sig_sum),find(P_pval_sig_sum));
 
 Signif_Modes_KC=[K, c];
 

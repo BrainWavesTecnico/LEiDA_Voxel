@@ -25,7 +25,7 @@ function Plot_Mode_TransparentBrain(results_dir, cluster_file, Key_Modes_KC)
 
 %% Load Required Data
 % Load clustering centroids and associated mask information.
-load([results_dir '/' cluster_file], 'MNI_lowres_Mask', 'ind_voxels','Kmeans_results');
+load([results_dir '/' cluster_file], 'MNI_lowres_Mask', 'ind_voxels','Kmeans_results','rangeK');
 
 N_Modes=size(Key_Modes_KC,1);
 

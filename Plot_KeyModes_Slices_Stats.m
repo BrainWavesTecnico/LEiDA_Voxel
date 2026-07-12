@@ -1,4 +1,4 @@
-function Plot_KeyModes_Slices_Stats(results_dir, cluster_file, stats_file,save_name,Key_Modes_KC)
+function Plot_KeyModes_Slices_Stats(results_dir, cluster_file, stats_file,save_name,Key_Modes_KC,Scores_Table)
 % Plot_KeyModes_Slices_Stats renders each selected [k c] key mode and displays
 % mean +/- SE fractional-occupancy bars per condition, on anatomical slices.
 %
@@ -16,20 +16,18 @@ function Plot_KeyModes_Slices_Stats(results_dir, cluster_file, stats_file,save_n
 %   save_name    - Base name used when saving the output figure.
 %   Key_Modes_KC - Nx2+ matrix with one row per key mode, [k c ...], as returned
 %                  by Choose_Relevant_Modes (or built manually).
-%
-% NOTE: this function also loads a hardcoded 'Scores_ADNI_2177scans.mat' from
-% results_dir to split subjects by sex; that file is study-specific and not
-% included in this repository.
+%   Scores_Table - .mat file with the Scores_ADNI table (used only to split
+%                  subjects by sex, via the PTGENDER column).
 %
 % Author: Joana Cabral, Tecnico, University of Lisbon, joanabcabral@tecnico.ulisboa.pt
- 
+
 %% Load Required Data
 % Load clustering centroids, rangeK, brain mask, and voxel indices.
 load([results_dir cluster_file], 'Kmeans_results', 'rangeK', 'MNI_lowres_Mask', 'ind_voxels');
 % Load statistical data (fractional occupancy etc.).
 load([results_dir stats_file], 'cond','P','P_pval', 'Index_Conditions', 'effectsize', 'condRow', 'condCol');
 
-load([results_dir 'Scores_ADNI_2177scans.mat'],'Scores_ADNI')
+load(Scores_Table,'Scores_ADNI')
 Index_Sex=Scores_ADNI.PTGENDER=='Male';
 
 %% Setup Mask and Color Map
