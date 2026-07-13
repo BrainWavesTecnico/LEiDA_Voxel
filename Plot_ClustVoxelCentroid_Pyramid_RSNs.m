@@ -1,4 +1,4 @@
-function Plot_ClustVoxelCentroid_Pyramid_RSNs(results_dir, file_clusters, stats_file, save_name, overlap_Yeo, cortex_dir, cond_pair, Add_asterisks)
+function Plot_ClustVoxelCentroid_Pyramid_RSNs(results_dir, file_clusters, stats_file, save_name, overlap_Yeo, cortex_dir, stat_of_interest, Add_asterisks)
 % Plot_ClustVoxelCentroid_Pyramid_RSNs renders all the clustering centroids in cortical
 % space.
 %
@@ -7,20 +7,30 @@ function Plot_ClustVoxelCentroid_Pyramid_RSNs(results_dir, file_clusters, stats_
 % Optionally, it colors the modes based on correlation with RSNs and/or marks centroids based on significance levels.
 %
 % INPUT:
-%   results_dir   - Directory where the clustering centroids and statistical results are saved.
-%   file_clusters - Filename (.mat) containing K-means clustering results (centroids, rangeK, mask).
-%   stats_file    - Filename (.mat) with statistical results and occupancy values (P, P_pval, cond, etc.).
-%                   Either the output of LEiDA_stats_Voxel_FracOccup_ComBat.m
-%                   (P_pval indexed by condition pair) or the pyramid_stats_file
-%                   output of Scores_vs_Mode_Occupancy.m (P_pval indexed by
-%                   score instead, one "row" per score).
-%   save_name     - Base name for saving the output figure.
-%   overlap_Yeo   - Flag (1/0) to indicate whether to color voxels using Yeo network colors.
-%   cortex_dir    - View direction for rendering (e.g., 'TopView' or 'SideView').
-%   cond_pair     - Index into P_pval's first dimension: a condition pair when
-%                   stats_file comes from LEiDA_stats_Voxel_FracOccup_ComBat.m,
-%                   or a score index when it comes from Scores_vs_Mode_Occupancy.m.
-%   Add_asterisks - Flag to indicate whether to overlay significance markers on the plot.
+%   results_dir      - Directory where the clustering centroids and statistical results are saved.
+%   file_clusters    - Filename (.mat) containing K-means clustering results (centroids, rangeK, mask).
+%   stats_file       - Filename (.mat) with statistical results and occupancy values (P, P_pval, cond, etc.).
+%                      Either the output of LEiDA_stats_Voxel_FracOccup_ComBat.m
+%                      (P_pval indexed by condition pair, e.g. CN-AD) or the
+%                      pyramid_stats_file output of Scores_vs_Mode_Occupancy.m
+%                      (P_pval indexed by score instead, e.g. MoCA).
+%   save_name        - Base name for saving the output figure. The name of the
+%                      selected comparison (see stat_of_interest) is appended
+%                      automatically, e.g. save_name = 'Pyramid' with a CN-AD
+%                      comparison saves as 'Pyramid_CN-AD_<cortex_dir>.png'.
+%   overlap_Yeo      - Flag (1/0) to indicate whether to color voxels using Yeo network colors.
+%   cortex_dir       - View direction for rendering (e.g., 'TopView' or 'SideView').
+%   stat_of_interest - Index into P_pval's first dimension, selecting WHICH
+%                      statistical result is displayed on top of each cluster
+%                      centroid (as the significance markers, when
+%                      Add_asterisks=1, and in the "P-values reported for..."
+%                      command-line message): a condition pair (e.g. CN-AD)
+%                      when stats_file comes from
+%                      LEiDA_stats_Voxel_FracOccup_ComBat.m, or a score (e.g.
+%                      MoCA) when it comes from Scores_vs_Mode_Occupancy.m.
+%   Add_asterisks    - Flag (1/0): overlay significance markers (asterisks,
+%                      circles, or crosses, by p-value threshold) for
+%                      stat_of_interest on top of each cluster centroid.
 %
 % OUTPUT:
 %   Fig           - A figure rendering all the centroids, saved in .fig and .jpg
@@ -41,17 +51,20 @@ load([results_dir stats_file], 'P', 'P_pval', 'cond', 'condCol', 'condRow', 'Ind
 % Scores_vs_Mode_Occupancy.m's pyramid-wide output, rather than condition pairs.
 n_Cond = length(unique(Index_Conditions));
 
-% Display which comparison cond_pair selects: a condition pair (e.g. "A vs B"),
-% or, when condRow(cond_pair)==condCol(cond_pair) (pyramid-wide score p-values),
-% a single score name.
-if condRow(cond_pair) == condCol(cond_pair)
-    disp(['P-values reported for score: ' cond{condRow(cond_pair)}]);
+% Determine which comparison stat_of_interest selects: a condition pair (e.g.
+% "CN-AD"), or, when condRow(stat_of_interest)==condCol(stat_of_interest)
+% (pyramid-wide score p-values), a single score (e.g. "MoCA"). stat_tag is
+% used both for the command-line message and to tag the saved figure name.
+if condRow(stat_of_interest) == condCol(stat_of_interest)
+    stat_tag = cond{condRow(stat_of_interest)};
+    disp(['P-values reported for score: ' stat_tag]);
 else
-    disp(['P-values reported for ' cond{condRow(cond_pair)} ' vs ' cond{condCol(cond_pair)}]);
+    stat_tag = [cond{condRow(stat_of_interest)} '-' cond{condCol(stat_of_interest)}];
+    disp(['P-values reported for ' cond{condRow(stat_of_interest)} ' vs ' cond{condCol(stat_of_interest)}]);
 end
 
 % Extract p-values for the specified condition pair (or score) for each clustering solution.
-P_pval = squeeze(P_pval(cond_pair, :, :));
+P_pval = squeeze(P_pval(stat_of_interest, :, :));
 
 %% Load RSN Parcellation and Prepare Mask
 % Load the mask of the Yeo parcellation in MNI 2mm space.
@@ -234,8 +247,11 @@ for k = 1:length(rangeK)
 end
 
 %% Save the Rendered Figure
-% Save the figure as both PNG and MATLAB FIG file.
-saveas(Fig, fullfile(results_dir, ['_' save_name '_' cortex_dir '.png']), 'png');
-saveas(Fig, fullfile(results_dir, [save_name '_' cortex_dir '.fig']), 'fig');
-disp(['- Plot successfully saved as ' save_name '_' cortex_dir]);
+% Save the figure as both PNG and MATLAB FIG file, tagged with stat_of_interest
+% (stat_tag) so figures for different comparisons/scores don't overwrite each other.
+stat_tag_safe = regexprep(stat_tag, '[^a-zA-Z0-9_-]', '_');
+full_save_name = [save_name '_' stat_tag_safe];
+saveas(Fig, fullfile(results_dir, ['_' full_save_name '_' cortex_dir '.png']), 'png');
+saveas(Fig, fullfile(results_dir, [full_save_name '_' cortex_dir '.fig']), 'fig');
+disp(['- Plot successfully saved as ' full_save_name '_' cortex_dir]);
 disp(' ');

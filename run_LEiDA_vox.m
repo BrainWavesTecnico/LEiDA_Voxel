@@ -90,13 +90,23 @@ Paired_tests = 0; n_permutations = 500; n_bootstraps = 0;
 LEiDA_stats_Voxel_FracOccup_ComBat(results_dir, cluster_file, stats_file, ...
     Condition_tags, Index_Conditions, Paired_tests, n_permutations, n_bootstraps, P);
 
-%% Step 3b: Compare mode occupancy with clinical/cognitive scores
-% Selects the key modes that differ most between conditions (falling back to
-% a fixed selection if none survive significance on this reduced sample),
-% then correlates their occupancy - and every mode in the entire pyramid -
-% with the scores in Scores_Table.
+%% Step 3b: Correlate every score with every mode in the entire pyramid
+% Does NOT depend on step 3a, or on any pre-selected set of modes.
 fprintf('\n=== Step 3b: Comparing mode occupancy with scores ===\n');
 
+pyramid_stats_file = 'Scores_Pyramid_Pval.mat';
+Scores_vs_Mode_Occupancy(P, Scores_Table, results_dir, cluster_file, pyramid_stats_file);
+
+%% Step 4: Figures
+fprintf('\n=== Step 4: Generating figures ===\n');
+Plot_FracOccup_stats(results_dir, stats_file);
+
+overlap_RSNs = 1; cortex_dir = 'SideView'; Add_asterisks = 0; stat_of_interest = 1;
+Plot_ClustVoxelCentroid_Pyramid_RSNs(results_dir, cluster_file, stats_file, ...
+    'Centroid_Pyramid_RSNs', overlap_RSNs, cortex_dir, stat_of_interest, Add_asterisks);
+
+% Select the key modes that differ most between conditions (falling back to a
+% fixed selection if none survive significance on this reduced sample).
 Key_Modes_KC = Choose_Relevant_Modes(results_dir, cluster_file, stats_file);
 if isempty(Key_Modes_KC)
     % Expected with a reduced demo sample: statistical power may be too low
@@ -119,17 +129,8 @@ if isempty(Key_Modes_KC)
     end
 end
 
-Scores_vs_Mode_Occupancy(P, Scores_Table, Key_Modes_KC, results_dir, cluster_file, 'Scores_Mode_Stats.mat', 'Scores_Pyramid_Pval.mat');
-
-%% Step 4: Figures
-fprintf('\n=== Step 4: Generating figures ===\n');
-Plot_FracOccup_stats(results_dir, stats_file);
-
-overlap_RSNs = 1; cortex_dir = 'SideView'; Add_asterisks = 0; cond_pair = 1;
-Plot_ClustVoxelCentroid_Pyramid_RSNs(results_dir, cluster_file, stats_file, ...
-    'Centroid_Pyramid_RSNs', overlap_RSNs, cortex_dir, cond_pair, Add_asterisks);
-
 Plot_KeyModes_Slices_Stats(results_dir, cluster_file, stats_file, 'Fig1_Key_modes', Key_Modes_KC, Scores_Table);
 Plot_Mode_TransparentBrain(results_dir, cluster_file, Key_Modes_KC);
+Plot_KeyModes_vs_Scores(P, Scores_Table, Key_Modes_KC, results_dir, 'Scores_Mode_Stats.mat');
 
 fprintf('\n=== LEiDA Voxel pipeline complete. Results saved to %s ===\n', results_dir);
