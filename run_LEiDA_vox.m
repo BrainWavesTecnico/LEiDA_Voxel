@@ -3,10 +3,13 @@ function run_LEiDA_vox(data_dir, results_dir)
 % pipeline, starting from already-extracted leading eigenvectors.
 %
 % Clusters the leading eigenvectors for K = 2:20, extracts mode occupancies
-% (optionally ComBat-harmonized), tests for differences between conditions,
-% and generates all summary figures. It assumes eigenvector extraction
-% (Get_EigenVectors_VoxelSpace_Server.m, which reads raw fMRI NIfTI files)
-% has already been done offline - this function only reads its output.
+% (optionally ComBat-harmonized), tests for differences between conditions
+% (Step 3a) and correlates mode occupancy with clinical/cognitive scores
+% (Step 3b), and generates all summary figures (Step 4). Eigenvector
+% extraction (Step 1: Get_EigenVectors_VoxelSpace_Server.m, which reads raw
+% fMRI NIfTI files) is NOT run here - it is a script, not a function, and
+% needs the full-size raw fMRI data that isn't part of this capsule. Run it
+% offline beforehand; this function only reads its output.
 %
 % Intended to be called with no arguments from a Code Ocean capsule with the
 % standard code/data/results layout (this file living in code/): it then
@@ -37,7 +40,13 @@ if ~exist(results_dir, 'dir'), mkdir(results_dir); end
 
 addpath(genpath(fileparts(mfilename('fullpath'))));
 
-%% File names - edit these to match what you place in data_dir
+%% Step 1: Leading eigenvectors (extracted OFFLINE - not run here)
+% Get_EigenVectors_VoxelSpace_Server.m reads raw fMRI NIfTI files and is a
+% script, not a function, so it cannot be called from this capsule. Run it
+% offline on your full dataset (or use Select_Demo_Subsample.m to build a
+% small demo subsample from an existing full-cohort eigenvector file), then
+% place the resulting eigenvector file and a matching Scores_ADNI table in
+% data_dir - edit the two filenames below to match what you name them.
 file_V1      = 'LEiDA_V1_all_MNI10mm_demo.mat';
 Scores_Table = fullfile(data_dir, 'Scores_ADNI_demo.mat');
 
@@ -65,12 +74,12 @@ else
     P = P_original;
 end
 
-%% Step 3: Statistical analysis between conditions
+%% Step 3a: Statistical analysis between conditions
 Index_Conditions = Scores_ADNI.DX_num + 1; % (+ 1 so conditions are 1,2,3,...)
 Condition_values = sort(unique(Index_Conditions));
 Condition_tags = cell(1, length(Condition_values));
 
-fprintf('\n=== Statistical analysis across conditions ===\n');
+fprintf('\n=== Step 3a: Statistical analysis across conditions ===\n');
 disp('Number of scans in each condition:')
 for cnd = 1:length(Condition_values)
     Condition_tags{cnd} = Scores_ADNI.DX{find(Scores_ADNI.DX_num+1==Condition_values(cnd),1)};
@@ -81,13 +90,12 @@ Paired_tests = 0; n_permutations = 500; n_bootstraps = 0;
 LEiDA_stats_Voxel_FracOccup_ComBat(results_dir, cluster_file, stats_file, ...
     Condition_tags, Index_Conditions, Paired_tests, n_permutations, n_bootstraps, P);
 
-%% Step 4: Figures
-fprintf('\n=== Generating figures ===\n');
-Plot_FracOccup_stats(results_dir, stats_file);
-
-overlap_RSNs = 1; cortex_dir = 'SideView'; Add_asterisks = 0; cond_pair = 1;
-Plot_ClustVoxelCentroid_Pyramid_RSNs(results_dir, cluster_file, stats_file, ...
-    'Centroid_Pyramid_RSNs', overlap_RSNs, cortex_dir, cond_pair, Add_asterisks);
+%% Step 3b: Compare mode occupancy with clinical/cognitive scores
+% Selects the key modes that differ most between conditions (falling back to
+% a fixed selection if none survive significance on this reduced sample),
+% then correlates their occupancy - and every mode in the entire pyramid -
+% with the scores in Scores_Table.
+fprintf('\n=== Step 3b: Comparing mode occupancy with scores ===\n');
 
 Key_Modes_KC = Choose_Relevant_Modes(results_dir, cluster_file, stats_file);
 if isempty(Key_Modes_KC)
@@ -111,8 +119,17 @@ if isempty(Key_Modes_KC)
     end
 end
 
+Scores_vs_Mode_Occupancy(P, Scores_Table, Key_Modes_KC, results_dir, cluster_file, 'Scores_Mode_Stats.mat', 'Scores_Pyramid_Pval.mat');
+
+%% Step 4: Figures
+fprintf('\n=== Step 4: Generating figures ===\n');
+Plot_FracOccup_stats(results_dir, stats_file);
+
+overlap_RSNs = 1; cortex_dir = 'SideView'; Add_asterisks = 0; cond_pair = 1;
+Plot_ClustVoxelCentroid_Pyramid_RSNs(results_dir, cluster_file, stats_file, ...
+    'Centroid_Pyramid_RSNs', overlap_RSNs, cortex_dir, cond_pair, Add_asterisks);
+
 Plot_KeyModes_Slices_Stats(results_dir, cluster_file, stats_file, 'Fig1_Key_modes', Key_Modes_KC, Scores_Table);
 Plot_Mode_TransparentBrain(results_dir, cluster_file, Key_Modes_KC);
-Scores_vs_Mode_Occupancy(P, Scores_Table, Key_Modes_KC, results_dir, cluster_file, 'Scores_Mode_Stats.mat', 'Scores_Pyramid_Pval.mat');
 
 fprintf('\n=== LEiDA Voxel pipeline complete. Results saved to %s ===\n', results_dir);

@@ -35,7 +35,7 @@ Figures are saved at each step in the results folder in both `.fig` and `.png`/`
 
 ```
 run_LEiDA_Voxel.m                    Main pipeline script (documents and runs all steps)
-run_LEiDA_vox.m                      Code Ocean capsule entry point (steps 2-4, from pre-extracted eigenvectors)
+run_LEiDA_vox.m                      Code Ocean capsule entry point (steps 2-4, from pre-extracted eigenvectors; step 1 documented but run offline)
 Select_Demo_Subsample.m              One-off local script: build a balanced demo subsample for the capsule's data/
 Mask_Voxels_of_Interest.m            Step 0: build a custom voxel mask
 Get_EigenVectors_VoxelSpace_Server.m Step 1: extract leading eigenvectors from fMRI data
@@ -66,7 +66,7 @@ See the header comments in `run_LEiDA_Voxel.m` for the full function reference, 
 1. On your own machine, with the full cohort's already-extracted eigenvectors and `Scores_ADNI` table, run [`Select_Demo_Subsample.m`](Select_Demo_Subsample.m) to pick a small, balanced, unique-participant demo subsample (e.g. 30 scans per condition) and save the two demo files.
 2. In the capsule, put those two files in `data/` (named to match `file_V1`/`Scores_Table` at the top of `run_LEiDA_vox.m`, or edit those two lines to match your filenames).
 3. Put all the `.m` files (including `combat/` and `utilities/`) in `code/`.
-4. `results/` is written to automatically; call `run_LEiDA_vox()` with no arguments and it clusters K = 2:20, extracts occupancies, runs the condition statistics, and saves every figure there.
+4. `results/` is written to automatically; call `run_LEiDA_vox()` with no arguments and it runs Step 2 (cluster K=2:20), Step 2b (occupancies), Step 3a (condition statistics), Step 3b (key-mode selection + score correlations, pyramid-wide and key-modes-only), and Step 4 (all figures) — Step 1 (eigenvector extraction) is the offline step you did in (1) above, since it needs the raw fMRI data that isn't part of this capsule.
 
 ComBat harmonization is off by default in the capsule (`apply_combat = 0` inside `run_LEiDA_vox.m`) since a small demo subsample is unlikely to have enough scans per site for reliable harmonization — turn it on if your demo data spans multiple well-populated sites. If no mode survives the significance threshold on the reduced sample (likely with far fewer scans than the full study), the driver falls back to a fixed mid-K mode selection so the figure-generation steps still produce output, and logs a warning explaining why.
 
