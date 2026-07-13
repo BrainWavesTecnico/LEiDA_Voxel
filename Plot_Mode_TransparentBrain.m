@@ -13,19 +13,23 @@ function Plot_Mode_TransparentBrain(results_dir, cluster_file, Key_Modes_KC)
 % INPUT:
 %   results_dir  - Directory containing the cluster file.
 %   cluster_file - Filename with clustering results (centroids, mask, etc.).
-%   Key_Modes_KC - Nx2+ matrix with one row per mode, [k c ...], as returned
-%                  by Choose_Relevant_Modes (or built manually).
+%   Key_Modes_KC - Nx2+ matrix with one row per mode, [ki c ...], as returned
+%                  by Choose_Relevant_Modes (or built manually). ki is the
+%                  POSITION of the clustering solution in rangeK (i.e.
+%                  Kmeans_results{ki}), NOT the literal number of clusters -
+%                  e.g. if rangeK = 2:20, ki=1 means K=2 clusters, ki=2 means
+%                  K=3, etc. c is the mode/centroid index within that solution.
 %
 % OUTPUT:
 %   Displays multiple 3D renderings and saves figures.
 %
-% Author: Joana Cabral, Universidade do Minho, juanitacabral@gmail.com
+% Author: Joana Cabral, University of Lisbon, joanabcabral@tecnico.ulisboa.pt
 % Funded by BPI-LaCaixa Foundation
 % and Portuguese Foundation for Science and Technology
 
 %% Load Required Data
 % Load clustering centroids and associated mask information.
-load([results_dir '/' cluster_file], 'MNI_lowres_Mask', 'ind_voxels','Kmeans_results');
+load([results_dir '/' cluster_file], 'MNI_lowres_Mask', 'ind_voxels','Kmeans_results','rangeK');
 
 N_Modes=size(Key_Modes_KC,1);
 
@@ -65,10 +69,10 @@ set(gcf,'Position', [ 423     2   801   998])
 for Mode = 1:N_Modes
     % Transform Selected Mode into 3D Volume and Compute Overlap with RSNs
     % Retrieve the centroid vector and reshape it.
-    k=Key_Modes_KC(Mode,1);
+    ki=Key_Modes_KC(Mode,1);
     c=Key_Modes_KC(Mode,2);
 
-    Vc = Kmeans_results{rangeK==k}.C(c, :);
+    Vc = Kmeans_results{ki}.C(c, :);
     % Create an empty 3D volume with the size of the MNI brain with 1cm3 voxels
     Vc_3D = zeros(size(MNI_lowres_Mask));
     % Insert the elements of the eigenvector on the corresponding volxels

@@ -19,7 +19,7 @@ function Plot_ClustVoxelCentroid_Pyramid_RSNs(results_dir, file_clusters, stats_
 % OUTPUT:
 %   Fig           - A figure rendering all the centroids, saved in .fig and .jpg
 %
-% Author: Joana Cabral, juanitacabral@gmail.com
+% Author: Joana Cabral, University of Lisbon, joanabcabral@tecnico.ulisboa.pt
 % Version from 9 April 2025
 
 %% Load Required Data
@@ -194,9 +194,9 @@ for k = 1:length(rangeK)
          mean_P_cond = zeros(1, n_Cond);
          ste = zeros(1, n_Cond);
          for j = 1:n_Cond
-             P_cond{j} = P(Index_Conditions == j, rangeK == k, Centroid);
-             mean_P_cond(j) = nanmean(P(Index_Conditions == j, rangeK == k, Centroid));
-             ste(j) = std(P(Index_Conditions == j, rangeK == k, Centroid)) / sqrt(numel(P(Index_Conditions == j, rangeK == k, Centroid)));
+             P_cond{j} = P(Index_Conditions == j, k, Centroid);
+             mean_P_cond(j) = nanmean(P(Index_Conditions == j, k, Centroid));
+             ste(j) = std(P(Index_Conditions == j, k, Centroid)) / sqrt(numel(P(Index_Conditions == j, k, Centroid)));
          end
          hold on
          if pval <= (0.05 / sum(rangeK))
