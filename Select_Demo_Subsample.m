@@ -2,7 +2,7 @@
 %
 % One-off, local data-prep script: selects a small, balanced demo subsample
 % (unique participants, equal N per condition) from your full leading
-% eigenvectors + Scores_ADNI table, and saves the two files run_LEiDA_vox.m
+% eigenvectors + Scores_ADNI table, and saves the two files run_LEiDA_Voxel_CodeOcean.m
 % expects in its data/ folder for a Code Ocean capsule.
 %
 % This is NOT part of the analysis pipeline itself - run it once, locally,

@@ -1,4 +1,4 @@
-%% run_LEiDA_vox.m
+%% run_LEiDA_Voxel_CodeOcean.m
 %
 % Code Ocean capsule script for the voxel-space LEiDA pipeline, starting from
 % already-extracted leading eigenvectors. Meant to be run directly (not
@@ -106,7 +106,7 @@ if isempty(Key_Modes_KC)
     % fixed selection (mid-range K) so the figure steps still produce output,
     % computing the same [ki c slope] format Plot_KeyModes_Slices_Stats expects
     % (ki is the POSITION in rangeK, not the literal number of clusters).
-    warning('run_LEiDA_vox:noSignificantModes', ...
+    warning('run_LEiDA_Voxel_CodeOcean:noSignificantModes', ...
         ['No mode survived the significance threshold on this demo subsample; ' ...
          'falling back to a fixed selection of modes for illustration.']);
     ki_demo = min(4, length(rangeK));
