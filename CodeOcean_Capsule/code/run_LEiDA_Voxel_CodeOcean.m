@@ -1,22 +1,18 @@
-function run_LEiDA_vox(data_dir, results_dir)
-% run_LEiDA_vox  Code Ocean capsule entry point for the voxel-space LEiDA
-% pipeline, starting from already-extracted leading eigenvectors.
+%% run_LEiDA_Voxel_CodeOcean.m
+%
+% Code Ocean capsule script for the voxel-space LEiDA pipeline, starting from
+% already-extracted leading eigenvectors. Meant to be run directly (not
+% called as a function) from a Code Ocean capsule with the standard
+% code/data/results layout (this file living in code/).
 %
 % Clusters the leading eigenvectors for K = 2:20, extracts mode occupancies
-% (optionally ComBat-harmonized), tests for differences between conditions,
-% and generates all summary figures. It assumes eigenvector extraction
-% (Get_EigenVectors_VoxelSpace_Server.m, which reads raw fMRI NIfTI files)
-% has already been done offline - this function only reads its output.
-%
-% Intended to be called with no arguments from a Code Ocean capsule with the
-% standard code/data/results layout (this file living in code/): it then
-% looks for its inputs in ../data and writes all outputs to ../results.
-%
-% INPUT (both optional; default to the Code Ocean capsule layout):
-%   data_dir    - Directory with the eigenvector file and Scores table.
-%                 Default: '../data/'
-%   results_dir - Directory where all outputs (clusters, occupancies, stats,
-%                 figures) are saved. Default: '../results/'
+% (optionally ComBat-harmonized), tests for differences between conditions
+% (Step 3a) and correlates mode occupancy with clinical/cognitive scores
+% (Step 3b), and generates all summary figures (Step 4). Eigenvector
+% extraction (Step 1: Get_EigenVectors_VoxelSpace_Server.m, which reads raw
+% fMRI NIfTI files) is NOT run here - it is a separate script that needs the
+% full-size raw fMRI data that isn't part of this capsule. Run it offline
+% beforehand; this script only reads its output.
 %
 % Expected files in data_dir (rename file_V1/Scores_Table below to match):
 %   'LEiDA_V1_all_MNI10mm_demo.mat' - eigenvectors, as saved by
@@ -26,18 +22,23 @@ function run_LEiDA_vox(data_dir, results_dir)
 %       PTGENDER, PTEDUCAT, DX_num, DX columns (plus the score columns used
 %       by Scores_vs_Mode_Occupancy.m), subsetted to the same scans as file_V1.
 %
-% Example (from within a Code Ocean capsule, cwd = code/):
-%   run_LEiDA_vox();
-%
 % Author: Joana Cabral, University of Lisbon, joanabcabral@tecnico.ulisboa.pt
 
-if nargin < 1 || isempty(data_dir),    data_dir    = '../data/';    end
-if nargin < 2 || isempty(results_dir), results_dir = '../results/'; end
+%% Directories - edit these if not running inside a Code Ocean capsule
+data_dir    = '../data/';      % Directory with the eigenvector file and Scores table
+results_dir = '../results/';   % Directory where all outputs are saved
+
 if ~exist(results_dir, 'dir'), mkdir(results_dir); end
 
 addpath(genpath(fileparts(mfilename('fullpath'))));
 
-%% File names - edit these to match what you place in data_dir
+%% Step 1: Leading eigenvectors (extracted OFFLINE - not run here)
+% Get_EigenVectors_VoxelSpace_Server.m reads raw fMRI NIfTI files and is a
+% script, not a function, so it cannot be called from this capsule. Run it
+% offline on your full dataset (or use Select_Demo_Subsample.m to build a
+% small demo subsample from an existing full-cohort eigenvector file), then
+% place the resulting eigenvector file and a matching Scores_ADNI table in
+% data_dir - edit the two filenames below to match what you name them.
 file_V1      = 'LEiDA_V1_all_MNI10mm_demo.mat';
 Scores_Table = fullfile(data_dir, 'Scores_ADNI_demo.mat');
 
@@ -65,12 +66,12 @@ else
     P = P_original;
 end
 
-%% Step 3: Statistical analysis between conditions
+%% Step 3a: Statistical analysis between conditions
 Index_Conditions = Scores_ADNI.DX_num + 1; % (+ 1 so conditions are 1,2,3,...)
 Condition_values = sort(unique(Index_Conditions));
 Condition_tags = cell(1, length(Condition_values));
 
-fprintf('\n=== Statistical analysis across conditions ===\n');
+fprintf('\n=== Step 3a: Statistical analysis across conditions ===\n');
 disp('Number of scans in each condition:')
 for cnd = 1:length(Condition_values)
     Condition_tags{cnd} = Scores_ADNI.DX{find(Scores_ADNI.DX_num+1==Condition_values(cnd),1)};
@@ -81,14 +82,23 @@ Paired_tests = 0; n_permutations = 500; n_bootstraps = 0;
 LEiDA_stats_Voxel_FracOccup_ComBat(results_dir, cluster_file, stats_file, ...
     Condition_tags, Index_Conditions, Paired_tests, n_permutations, n_bootstraps, P);
 
+%% Step 3b: Correlate every score with every mode in the entire pyramid
+% Does NOT depend on step 3a, or on any pre-selected set of modes.
+fprintf('\n=== Step 3b: Comparing mode occupancy with scores ===\n');
+
+pyramid_stats_file = 'Scores_Pyramid_Pval.mat';
+Scores_vs_Mode_Occupancy(P, Scores_Table, results_dir, cluster_file, pyramid_stats_file);
+
 %% Step 4: Figures
-fprintf('\n=== Generating figures ===\n');
+fprintf('\n=== Step 4: Generating figures ===\n');
 Plot_FracOccup_stats(results_dir, stats_file);
 
-overlap_RSNs = 1; cortex_dir = 'SideView'; Add_asterisks = 0; cond_pair = 1;
+overlap_RSNs = 1; cortex_dir = 'SideView'; Add_asterisks = 0; stat_of_interest = 1;
 Plot_ClustVoxelCentroid_Pyramid_RSNs(results_dir, cluster_file, stats_file, ...
-    'Centroid_Pyramid_RSNs', overlap_RSNs, cortex_dir, cond_pair, Add_asterisks);
+    'Centroid_Pyramid_RSNs', overlap_RSNs, cortex_dir, stat_of_interest, Add_asterisks);
 
+% Select the key modes that differ most between conditions (falling back to a
+% fixed selection if none survive significance on this reduced sample).
 Key_Modes_KC = Choose_Relevant_Modes(results_dir, cluster_file, stats_file);
 if isempty(Key_Modes_KC)
     % Expected with a reduced demo sample: statistical power may be too low
@@ -96,7 +106,7 @@ if isempty(Key_Modes_KC)
     % fixed selection (mid-range K) so the figure steps still produce output,
     % computing the same [ki c slope] format Plot_KeyModes_Slices_Stats expects
     % (ki is the POSITION in rangeK, not the literal number of clusters).
-    warning('run_LEiDA_vox:noSignificantModes', ...
+    warning('run_LEiDA_Voxel_CodeOcean:noSignificantModes', ...
         ['No mode survived the significance threshold on this demo subsample; ' ...
          'falling back to a fixed selection of modes for illustration.']);
     ki_demo = min(4, length(rangeK));
@@ -113,6 +123,6 @@ end
 
 Plot_KeyModes_Slices_Stats(results_dir, cluster_file, stats_file, 'Fig1_Key_modes', Key_Modes_KC, Scores_Table);
 Plot_Mode_TransparentBrain(results_dir, cluster_file, Key_Modes_KC);
-Scores_vs_Mode_Occupancy(P, Scores_Table, Key_Modes_KC, results_dir, 'Scores_Mode_Stats.mat');
+Plot_KeyModes_vs_Scores(P, Scores_Table, Key_Modes_KC, results_dir, 'Scores_Mode_Stats.mat');
 
 fprintf('\n=== LEiDA Voxel pipeline complete. Results saved to %s ===\n', results_dir);

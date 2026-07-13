@@ -22,18 +22,20 @@
 %      and, optionally, harmonize it across acquisition sites using ComBat.
 %      Both the original and harmonized occupancies are saved, and downstream
 %      steps can be run on either one.
-%   3. COMPARE CONDITIONS (optional): Perform hypothesis testing between
+%   3a. COMPARE CONDITIONS (optional): Perform hypothesis testing between
 %      conditions (permutation testing, with optional bootstrap and Hedge's
 %      effect sizes), on either the original or the harmonized occupancies.
 %      Skip this step for studies with no discrete conditions to compare.
-%   4. RESULTS: Identify a set of key modes - automatically, from step 3's
+%   3b. COMPARE SCORES: Correlate every clinical/cognitive score against every
+%      mode in the entire pyramid (all K), report/save the significant
+%      results. Only needs the occupancy matrix from step 2b - does not
+%      depend on step 3a, or on any pre-selected set of key modes.
+%   4. RESULTS: Identify a set of key modes - automatically, from step 3a's
 %      significant/large-effect modes, or manually - and visualize their
 %      spatial patterns
 %               - as slices with occupancy bar plots
 %               - as 3D renders, including overlap with Yeo Resting-State Networks
-%   5. SCORES: Correlate the key modes' occupancy with clinical/cognitive
-%      scores. Only needs the occupancy matrix from step 2b and a set of key
-%      modes (from step 4); does not require step 3 to have been run.
+%               - against the scores from step 3b
 %
 % Figures are saved at each step in the results folder in both .fig and .png,
 %      showing the clustering results, statistical outcomes, and
@@ -113,7 +115,7 @@
 %    Example:
 %      [P_original, P_harmonized, rangeK, Scores_ADNI] = Save_Occupancies_Harmonize(results_dir, cluster_file, Scores_Table, apply_combat, occup_file);
 %
-% 3. LEiDA_stats_Voxel_FracOccup_ComBat
+% 3a. LEiDA_stats_Voxel_FracOccup_ComBat
 %    - Purpose: Performs statistical tests (permutation, with optional bootstrap)
 %      on the fractional occupancy of each mode between conditions. Uses Welch's
 %      t-test for independent samples or a paired permutation test for paired
@@ -130,12 +132,43 @@
 %      n_bootstraps      : Number of bootstrap samples (e.g., 0-50).
 %      P                 : Fractional occupancy matrix; pass P_original or
 %                          P_harmonized from step 2b, whichever you want to
-%                          test. Whichever is passed gets saved as P inside
-%                          file_stats, so Scores_vs_Mode_Occupancy (which reads
-%                          P from file_stats) automatically uses the same one.
+%                          test. Pass the same P to Scores_vs_Mode_Occupancy
+%                          (step 3b) to keep the two analyses consistent.
 %
 %    Example:
 %      LEiDA_stats_Voxel_FracOccup_ComBat(results_dir, cluster_file, stats_file, cond, Index_Conditions, pair, n_permutations, n_bootstraps, P);
+%
+% 3b. Scores_vs_Mode_Occupancy
+%    - Purpose: Correlates every clinical/cognitive score against every mode
+%      in the entire pyramid (every K in rangeK), partial correlation
+%      controlling for age. Does NOT depend on any pre-selected set of modes
+%      and does NOT generate a figure - it only computes and saves the
+%      p-values, and reports the most significant results to the command
+%      line (any mode surviving Bonferroni across the whole pyramid AND all
+%      scores tested: 0.05/sum(rangeK)/N_scores). Use Plot_KeyModes_vs_Scores
+%      (step 9 below) afterwards to plot a selected set of modes against
+%      these scores. The saved p-values can also be loaded by
+%      Plot_ClustVoxelCentroid_Pyramid_RSNs.m (step 5) in place of the
+%      permutation-test p-values (pass pyramid_stats_file as its stats_file;
+%      stat_of_interest then selects which score to display).
+%    - Takes the occupancy matrix P directly (e.g. P_original or P_harmonized
+%      from step 2b), NOT from stats_file, so it does not depend on step 3a
+%      (LEiDA_stats_Voxel_FracOccup_ComBat) having been run. This makes it
+%      usable on its own for studies with no discrete conditions to compare,
+%      only continuous scores.
+%    - NOTE: The set of score columns used (Genetics/Biomarkers/Cognitive_functions
+%      indices) is hardcoded for the ADNI Scores_ADNI table used in Campo et al.;
+%      adapt these indices for a different scores table.
+%
+%    Inputs:
+%      P                  : Fractional occupancy matrix (P_original or P_harmonized).
+%      Scores_Table       : .mat file with the Scores_ADNI table.
+%      results_dir        : Directory where the mat output is saved.
+%      cluster_file       : Clustering results file name (used to load rangeK).
+%      pyramid_stats_file : Output .mat filename for the entire-pyramid p-values.
+%
+%    Example:
+%      Scores_vs_Mode_Occupancy(P, Scores_Table, results_dir, cluster_file, pyramid_stats_file);
 %
 % 4. Plot_FracOccup_stats
 %    - Purpose: Generates plots summarizing the statistical tests on fractional
@@ -150,23 +183,36 @@
 %
 % 5. Plot_ClustVoxelCentroid_Pyramid_RSNs
 %    - Purpose: Renders a pyramid of all centroids (across all K), each on a
-%               transparent brain, with optional RSN overlay and significance markers.
+%               transparent brain, with optional RSN overlay. Add_asterisks
+%               overlays a significance marker on top of each cluster
+%               centroid, showing the chosen statistical result
+%               (stat_of_interest) for that mode.
 %
 %    Inputs:
-%      results_dir  : Directory where results are stored.
-%      file_clusters: Clustering results file name.
-%      stats_file   : Statistics file name.
-%      save_name    : Base name for saving the output figure.
-%      overlap_Yeo  : Flag to use Yeo RSN colors (1=yes, 0=no).
-%      cortex_dir   : View for rendering ('SideView' or 'TopView').
-%      cond_pair    : Index for condition pair to report asterisks for, e.g.:
+%      results_dir      : Directory where results are stored.
+%      file_clusters     : Clustering results file name.
+%      stats_file        : Statistics file name - either the output of step
+%                          3a (P_pval indexed by condition pair) or the
+%                          pyramid_stats_file from step 3b (P_pval indexed by
+%                          score instead).
+%      save_name         : Base name for saving the output figure. The name
+%                          of the selected comparison is appended
+%                          automatically (see stat_of_interest below).
+%      overlap_Yeo       : Flag to use Yeo RSN colors (1=yes, 0=no).
+%      cortex_dir        : View for rendering ('SideView' or 'TopView').
+%      stat_of_interest  : Index into P_pval's first dimension, selecting
+%                          WHICH statistical result is displayed on top of
+%                          each centroid: a condition pair (e.g. CN-AD) when
+%                          stats_file comes from step 3a, e.g.:
                             %1 : CN - MCI
                             %2 : CN - DEM
                             %3 : MCI - DEM
-%      Add_asterisks: Flag to overlay significance markers (1=yes, 0=no).
+%                          or a score (e.g. MoCA) when stats_file comes from
+%                          step 3b.
+%      Add_asterisks     : Flag to overlay significance markers (1=yes, 0=no).
 %
 %    Example:
-%      Plot_ClustVoxelCentroid_Pyramid_RSNs(results_dir, cluster_file, stats_file, 'Centroid_Pyramid_Magenta_CN_AD', 0, 'SideView', 3, 1);
+%      Plot_ClustVoxelCentroid_Pyramid_RSNs(results_dir, cluster_file, stats_file, 'Centroid_Pyramid_Magenta', 0, 'SideView', 3, 1);
 %
 % 6. Choose_Relevant_Modes
 %    - Purpose: Automatically selects the [ki c] modes that differ most between
@@ -218,16 +264,11 @@
 %    Example:
 %      Plot_Mode_TransparentBrain(results_dir, cluster_file, Key_Modes_KC);
 %
-% 9. Scores_vs_Mode_Occupancy
-%    - Purpose: Correlates (partial correlation, controlling for age) the
-%               occupancy of each key mode with a set of clinical/cognitive
-%               scores, plots the results, and exports them to a CSV.
-%    - Takes the occupancy matrix P directly (e.g. P_original or P_harmonized
-%      from step 2b), NOT from stats_file, so it does not depend on step 3
-%      (LEiDA_stats_Voxel_FracOccup_ComBat) having been run. This makes it
-%      usable on its own for studies with no discrete conditions to compare,
-%      only continuous scores (combine with a manually-specified Key_Modes_KC,
-%      see step 4 below, since Choose_Relevant_Modes does need stats_file).
+% 9. Plot_KeyModes_vs_Scores
+%    - Purpose: Figure-generation counterpart to Scores_vs_Mode_Occupancy
+%      (step 3b): plots one bar (of correlation coefficients across scores)
+%      per selected key mode, and exports a CSV. Unlike step 3b, this DOES
+%      depend on a pre-selected set of modes (Key_Modes_KC).
 %    - NOTE: The set of score columns used (Genetics/Biomarkers/Cognitive_functions
 %      indices) is hardcoded for the ADNI Scores_ADNI table used in Campo et al.;
 %      adapt these indices for a different scores table.
@@ -241,7 +282,7 @@
 %      save_name    : Output .mat filename for the correlation results.
 %
 %    Example:
-%      Scores_vs_Mode_Occupancy(P, Scores_Table, Key_Modes_KC, results_dir, save_name);
+%      Plot_KeyModes_vs_Scores(P, Scores_Table, Key_Modes_KC, results_dir, save_name);
 %
 % Complete Pipeline Example:
 % ----------------------------------------------
@@ -269,36 +310,47 @@
 %     use_harmonized_occupancies = 1;   % 1: use P_harmonized, 0: use P_original
 %     P = P_harmonized;   % or P_original
 %
-%   4. (Optional) Statistical analysis between discrete conditions - skip this
-%      step entirely if your study only has continuous scores to correlate:
+%   4a. (Optional) Statistical analysis between discrete conditions - skip
+%      this step entirely if your study only has continuous scores to correlate:
 %     cond = {'CN','MCI','DEM'};
 %     Paired_tests = 0; n_permutations = 1000; n_bootstraps = 0;
 %     LEiDA_stats_Voxel_FracOccup_ComBat(results_dir, cluster_file, stats_file, cond, Index_Conditions, Paired_tests, n_permutations, n_bootstraps, P);
 %
+%   4b. Correlate every score against every mode in the entire pyramid (does
+%      NOT depend on step 4a, or on any pre-selected set of modes):
+%     pyramid_stats_file = 'Scores_Pyramid_Pval.mat';
+%     Scores_vs_Mode_Occupancy(P, Scores_Table, results_dir, cluster_file, pyramid_stats_file);
+%
 %   5. Generate Figures:
 %     a. Plot statistical results, including all p-values and effect sizes
-%        (requires step 4):
+%        (requires step 4a):
 %        Plot_FracOccup_stats(results_dir, stats_file);
 %
-%     b. Centroid pyramid with RSN overlay (requires step 4):
-%        overlap_RSNs = 0; cortex_dir = 'SideView'; Add_asterisks = 1; cond_pair = 3;
-%        save_name = 'Centroid_Pyramid_Magenta_CN_AD';
-%        Plot_ClustVoxelCentroid_Pyramid_RSNs(results_dir, cluster_file, stats_file, save_name, overlap_RSNs, cortex_dir, cond_pair, Add_asterisks);
+%     b. Centroid pyramid with RSN overlay, marked by a condition-pair result
+%        (requires step 4a) - or pass pyramid_stats_file instead of stats_file
+%        and a score index instead of a condition-pair index to mark by score
+%        significance instead (requires step 4b):
+%        overlap_RSNs = 0; cortex_dir = 'SideView'; Add_asterisks = 1; stat_of_interest = 3;
+%        save_name = 'Centroid_Pyramid_Magenta';
+%        Plot_ClustVoxelCentroid_Pyramid_RSNs(results_dir, cluster_file, stats_file, save_name, overlap_RSNs, cortex_dir, stat_of_interest, Add_asterisks);
 %
-%     c. Automatically select and plot the key modes that differ between
-%        conditions (requires step 4). Without step 4, specify Key_Modes_KC
-%        manually instead, e.g. Key_Modes_KC = [2 4; 4 6] (1st column is the
-%        POSITION in rangeK, not the literal K - see step 6's docs above):
+%     c. Automatically select the key modes that differ between conditions
+%        (requires step 4a). Without step 4a, specify Key_Modes_KC manually
+%        instead, e.g. Key_Modes_KC = [2 4; 4 6] (1st column is the POSITION
+%        in rangeK, not the literal K - see step 6's docs above):
 %        Key_Modes_KC = Choose_Relevant_Modes(results_dir, cluster_file, stats_file);
+%
+%     d. Plot the key modes on anatomical slices with occupancy bars
+%        (requires step 4a, for the Key_Modes_KC computed in c):
 %        Plot_KeyModes_Slices_Stats(results_dir, cluster_file, stats_file, 'Fig1_Key_modes', Key_Modes_KC, Scores_Table);
 %
-%     d. Detailed 3D visualization of the key modes, with RSN overlap
-%        (only requires cluster_file and Key_Modes_KC, not step 4):
+%     e. Detailed 3D visualization of the key modes, with RSN overlap
+%        (only requires cluster_file and Key_Modes_KC, not step 4a):
 %        Plot_Mode_TransparentBrain(results_dir, cluster_file, Key_Modes_KC);
 %
-%     e. Correlate key mode occupancy with clinical/cognitive scores (only
-%        requires P and Key_Modes_KC, not step 4):
-%        Scores_vs_Mode_Occupancy(P, Scores_Table, Key_Modes_KC, results_dir, 'Scores_Mode_Stats.mat');
+%     f. Plot the key modes' occupancy against the scores from step 4b (only
+%        requires P and Key_Modes_KC, not step 4a):
+%        Plot_KeyModes_vs_Scores(P, Scores_Table, Key_Modes_KC, results_dir, 'Scores_Mode_Stats.mat');
 %
 %==========================================================================
 %% Setup Library of Directories and File Names 
@@ -358,10 +410,10 @@ apply_combat = 1;   % 1 to harmonize occupancies across sites with ComBat; 0 to 
 [P_original, P_harmonized, rangeK, Scores_ADNI] = ...
     Save_Occupancies_Harmonize(results_dir, cluster_file, Scores_Table, apply_combat, occup_file);
 
-% Choose, once, whether the rest of the pipeline (condition statistics in step 3
-% AND the score correlations in Figure 6) runs on the raw or the harmonized
-% occupancies. This is independent of whether step 3 is run at all, so
-% Figure 6 can be used on its own for studies with no discrete conditions to
+% Choose, once, whether the rest of the pipeline (condition statistics in step
+% 3a AND the score correlations in step 3b) runs on the raw or the harmonized
+% occupancies. This is independent of whether step 3a is run at all, so
+% step 3b can be used on its own for studies with no discrete conditions to
 % test, only continuous scores to correlate with mode occupancy.
 use_harmonized_occupancies = 1;   % 1: use P_harmonized; 0: use P_original
 if use_harmonized_occupancies
@@ -370,9 +422,9 @@ else
     P = P_original;
 end
 
-%% 3. Statistical Analysis of Mode Occupancies between conditions
+%% 3a. Statistical Analysis of Mode Occupancies between conditions
 % (Skip this section entirely if your study has no discrete conditions to
-% compare; Figure 6 below only needs P and Key_Modes_KC, not this section's output.)
+% compare; step 3b below only needs P, not this section's output.)
 
 % --- Definir condições ---
 Index_Conditions = Scores_ADNI.DX_num+1; % (+ 1 so conditions are 1,2,3)
@@ -392,34 +444,47 @@ n_bootstraps   = 0;
 LEiDA_stats_Voxel_FracOccup_ComBat(results_dir, cluster_file, stats_file, ...
     Condition_tags, Index_Conditions, Paired_tests, n_permutations, n_bootstraps, P);
 
-% Statistical Report of Fractional Occupancy across conditions
+%% 3b. Correlate every score with every mode in the entire pyramid
+% Does NOT depend on step 3a, or on any pre-selected set of modes. Reports
+% the most significant results to the command line and saves the p-values
+% for use by Plot_ClustVoxelCentroid_Pyramid_RSNs.m (step 5b below) and by
+% Plot_KeyModes_vs_Scores.m (step 5f below, once Key_Modes_KC is chosen).
+
+pyramid_stats_file='Scores_Pyramid_Pval.mat';
+Scores_vs_Mode_Occupancy(P,Scores_Table,results_dir,cluster_file,pyramid_stats_file)
+
+%% 5. Figures with Results
+
+% Statistical Report of Fractional Occupancy across conditions (requires 3a)
 Plot_FracOccup_stats(results_dir, stats_file);
 % Saves figures with main statistical results, including p-values, effect sizes and Barplot pyramid
 
-%% Plot Centroid Pyramid with Statistical Results Overlay.
+%% 5b. Plot Centroid Pyramid with Statistical Results Overlay.
 % Options:
-%   - overlap_RSNs : 1 to color the voxels using Yeo RSN colors; 0 otherwise.
-%   - cortex_dir : 'SideView' or 'TopView' to chose the camera angle of 3D brains
-%   - Add_asterisks: 1 to add significance markers; 0 otherwise (SideView only)
-%   - cond_pair    : Specify condition pair to show asterisks; e.g., 2 represents CN vs. AD.
+%   - overlap_RSNs   : 1 to color the voxels using Yeo RSN colors; 0 otherwise.
+%   - cortex_dir     : 'SideView' or 'TopView' to chose the camera angle of 3D brains
+%   - Add_asterisks  : 1 to add significance markers; 0 otherwise (SideView only)
+%   - stat_of_interest : Which statistical result to mark on each centroid.
+%       With stats_file (requires 3a): index into a condition pair, e.g. 2 = CN vs. AD.
+%       With pyramid_stats_file instead (requires 3b): index into a score,
+%       e.g. see the command-line report from 3b for which scores had
+%       significant modes.
 overlap_RSNs = 1;
 cortex_dir = 'SideView';
 Add_asterisks = 0;
 
-cond_pair = 2;
-% Change name if you change the condition pair
-save_name = 'Fig2_Centroid_Pyramid_RSNs_CN_vs_DEM';
+stat_of_interest = 2;
+save_name = 'Fig2_Centroid_Pyramid_RSNs';
 
-Plot_ClustVoxelCentroid_Pyramid_RSNs(results_dir, cluster_file, stats_file, save_name, overlap_RSNs, cortex_dir, cond_pair, Add_asterisks);
+Plot_ClustVoxelCentroid_Pyramid_RSNs(results_dir, cluster_file, stats_file, save_name, overlap_RSNs, cortex_dir, stat_of_interest, Add_asterisks);
 
+% OR, to mark by score significance instead of condition-comparison significance:
+% Plot_ClustVoxelCentroid_Pyramid_RSNs(results_dir, cluster_file, pyramid_stats_file, save_name, overlap_RSNs, cortex_dir, stat_of_interest, Add_asterisks);
 
-
-%% 4. Figures with Results
-
-% Select a number of Key Modes to analyze
+%% 5c. Select a number of Key Modes to analyze
 
 % Automatically select the Key Modes differing mostly between conditions
-% (requires stats_file from step 3, i.e. discrete conditions to compare):
+% (requires stats_file from step 3a, i.e. discrete conditions to compare):
 Key_Modes_KC = Choose_Relevant_Modes(results_dir, cluster_file, stats_file);
 
 % OR
@@ -432,25 +497,23 @@ Key_Modes_KC = Choose_Relevant_Modes(results_dir, cluster_file, stats_file);
 
 % OR
 
-% Make your own selection in pairs [ki c] (does not require step 3 at all,
+% Make your own selection in pairs [ki c] (does not require step 3a at all,
 % e.g. for studies with only continuous scores and no discrete conditions).
 % ki is the POSITION in rangeK, not the literal K - e.g. with rangeK=2:20,
 % ki=2 means K=3 clusters. Use find(rangeK==K_wanted) to convert, as above:
 % Key_Modes_KC=[[2 4];[4 6];];
 
-%% FIGURE 1. Plot the key modes differing between conditions 
+%% 5d. Plot the key modes differing between conditions (requires 3a for Key_Modes_KC above)
 
 save_name = 'Fig1_Key_modes_Slice_Occupancy_bars_';
 Plot_KeyModes_Slices_Stats(results_dir, cluster_file, stats_file,save_name,Key_Modes_KC,Scores_Table)
 
-%% FIGURE 3. Plot detailed visualization of Key Modes and get the list of brain areas involved.
+%% 5e. Plot detailed visualization of Key Modes and get the list of brain areas involved.
 
 Plot_Mode_TransparentBrain(results_dir, cluster_file, Key_Modes_KC);
 
-%% Figure 6: Compare with scores
-% Runs directly on P (P_original or P_harmonized from step 2b), independent of
-% the condition-comparison statistics in step 3 - so this also works for
-% studies with continuous scores only and no discrete conditions to test.
+%% 5f. Plot the key modes' occupancy against the scores from step 3b
+% Only requires P and Key_Modes_KC, not step 3a.
 
 save_name='Scores_Mode_Stats.mat';
-Scores_vs_Mode_Occupancy(P,Scores_Table,Key_Modes_KC,results_dir,save_name)
+Plot_KeyModes_vs_Scores(P,Scores_Table,Key_Modes_KC,results_dir,save_name)
