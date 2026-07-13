@@ -1,16 +1,42 @@
 function [Key_Modes_KC, Key_Centroids] = Choose_Relevant_Modes(results_dir, cluster_file, stats_file)
-
+% Choose_Relevant_Modes automatically selects the modes that differ most
+% between conditions after LEiDA_stats_Voxel_FracOccup_ComBat, keeping modes
+% that are significant (after multiple-testing correction) with an effect
+% size > 0.35, then grouping strongly-correlated modes (corr > 0.65) and
+% keeping one representative (most significant) mode per group.
+%
+% INPUT:
+%   results_dir  - Directory where the cluster and stats files are stored.
+%   cluster_file - Clustering results file name.
+%   stats_file   - Statistical results file name (output of
+%                  LEiDA_stats_Voxel_FracOccup_ComBat).
+%
+% OUTPUT:
+%   Key_Modes_KC   - Nx12 matrix, one row per selected key mode:
+%                    [ki, c, slope, n_sig_pairs, pval(1:3), effectsize(1:3), group, group_order].
+%                    ki is the POSITION of the clustering solution in rangeK
+%                    (i.e. Kmeans_results{ki}), NOT the literal number of
+%                    clusters - e.g. if rangeK = 2:20, ki=1 means K=2
+%                    clusters, ki=2 means K=3, etc. c is the mode/centroid
+%                    index within that solution. slope (column 3) is the mean
+%                    occupancy change between the last and first condition.
+%   Key_Centroids  - Corresponding centroid vectors, one row per key mode.
+%
+% Author: Joana Cabral, University of Lisbon, joanabcabral@tecnico.ulisboa.pt
 
 % Function to detect the most relevant modes after statistical analysis
 
-generate_pyramid_groups=0; 
+generate_pyramid_groups=0;
 
 % Load statistical occupancy data and condition info.
 load([results_dir stats_file], 'P', 'P_pval', 'cond', 'condCol', 'condRow', 'Index_Conditions','rangeK','effectsize');
 
 P_pval_sig_sum=squeeze(sum(P_pval< (0.05 / sum(rangeK)/ 3/2) & P_pval>0 & effectsize> 0.35));
 
-[K, c]=ind2sub([20, 20],find(P_pval_sig_sum));
+% NOTE: ind2sub must use P_pval_sig_sum's actual size (length(rangeK) x rangeK(end)).
+% A previous version hardcoded [20, 20], which only matched when rangeK == 1:20;
+% for any other mink/maxk it silently produced wrong (K,c) subscripts.
+[K, c]=ind2sub(size(P_pval_sig_sum),find(P_pval_sig_sum));
 
 Signif_Modes_KC=[K, c];
 
@@ -25,7 +51,7 @@ for Mode=1:size(Signif_Modes_KC,1)
     Centroids_Signif(Mode,:)=Kmeans_results{Signif_Modes_KC(Mode,1)}.C(Signif_Modes_KC(Mode,2),:);
     mean_P_cond = zeros(1, size(cond,2));
     for j = 1:size(cond,2)
-        mean_P_cond(j) = nanmean(P(Index_Conditions == j, rangeK == Signif_Modes_KC(Mode,1), Signif_Modes_KC(Mode,2)));
+        mean_P_cond(j) = nanmean(P(Index_Conditions == j, Signif_Modes_KC(Mode,1), Signif_Modes_KC(Mode,2)));
     end
     Signif_Modes_KC(Mode,3)=mean_P_cond(end)-mean(mean_P_cond(1));
 end

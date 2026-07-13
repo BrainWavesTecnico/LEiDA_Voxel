@@ -1,4 +1,4 @@
-function Plot_KeyModes_Slices_Stats(results_dir, cluster_file, stats_file,save_name,Key_Modes_KC)
+function Plot_KeyModes_Slices_Stats(results_dir, cluster_file, stats_file,save_name,Key_Modes_KC,Scores_Table)
 % Plot_KeyModes_Slices_Stats renders each selected [k c] key mode and displays
 % mean +/- SE fractional-occupancy bars per condition, on anatomical slices.
 %
@@ -14,23 +14,27 @@ function Plot_KeyModes_Slices_Stats(results_dir, cluster_file, stats_file,save_n
 %   cluster_file - Filename containing clustering results (e.g., centroids, mask).
 %   stats_file   - Filename containing statistical results (occupancy, p-values, etc.).
 %   save_name    - Base name used when saving the output figure.
-%   Key_Modes_KC - Nx2+ matrix with one row per key mode, [k c ...], as returned
-%                  by Choose_Relevant_Modes (or built manually).
+%   Key_Modes_KC - Nx3+ matrix with one row per key mode, [ki c slope ...], as
+%                  returned by Choose_Relevant_Modes (or built manually). ki is
+%                  the POSITION of the clustering solution in rangeK (i.e.
+%                  Kmeans_results{ki}), NOT the literal number of clusters -
+%                  e.g. if rangeK = 2:20, ki=1 means K=2 clusters, ki=2 means
+%                  K=3, etc. c is the mode/centroid index within that solution.
+%                  slope (column 3) is the mean occupancy change between the
+%                  last and first condition; its sign selects whether a mode
+%                  is plotted in the "Decrease" or "Increase" figure below.
+%   Scores_Table - .mat file with the Scores_ADNI table (used only to split
+%                  subjects by sex, via the PTGENDER column).
 %
-% NOTE: this function also loads a hardcoded 'Scores_ADNI_2177scans.mat' from
-% results_dir to split subjects by sex; that file is study-specific and not
-% included in this repository.
-%
-% Author: Joana Cabral, University of Lisbon,
-% joanabcabral@tecnico.ulisboapt
- 
+% Author: Joana Cabral, University of Lisbon, joanabcabral@tecnico.ulisboa.pt
+
 %% Load Required Data
 % Load clustering centroids, rangeK, brain mask, and voxel indices.
 load([results_dir cluster_file], 'Kmeans_results', 'rangeK', 'MNI_lowres_Mask', 'ind_voxels');
 % Load statistical data (fractional occupancy etc.).
 load([results_dir stats_file], 'cond','P','P_pval', 'Index_Conditions', 'effectsize', 'condRow', 'condCol');
 
-load([results_dir 'Scores_ADNI_2177scans.mat'],'Scores_ADNI')
+load(Scores_Table,'Scores_ADNI')
 Index_Sex=Scores_ADNI.PTGENDER=='Male';
 
 %% Setup Mask and Color Map
@@ -63,7 +67,7 @@ n_columns = 3 + n_slices;
 % Loop over each centroid (sorted) for the selected K.
 for Mode = 1:N_Modes
 
-    k=Key_Modes_Decrease(Mode,1);
+    ki=Key_Modes_Decrease(Mode,1);
     c=Key_Modes_Decrease(Mode,2);
 
     % Create subplot for barplot (error bars)
@@ -74,17 +78,17 @@ for Mode = 1:N_Modes
     mean_P_cond = zeros(1, n_Cond);
     ste = zeros(1, n_Cond);
     for j = 1:n_Cond
-        P_cond{j} = P(Index_Conditions == j, rangeK == k, c);
-        mean_P_cond(j) = nanmean(P(Index_Conditions == j, rangeK == k, c));
-        ste(j) = std(P(Index_Conditions == j, rangeK == k, c)) / sqrt(numel(P(Index_Conditions == j, rangeK == k, c)));
+        P_cond{j} = P(Index_Conditions == j, ki, c);
+        mean_P_cond(j) = nanmean(P(Index_Conditions == j, ki, c));
+        ste(j) = std(P(Index_Conditions == j, ki, c)) / sqrt(numel(P(Index_Conditions == j, ki, c)));
         % FEMALE
-        P_condF{j} = P(~Index_Sex & Index_Conditions == j, rangeK == k, c);
-        mean_P_condF(j) = nanmean(P(~Index_Sex & Index_Conditions == j, rangeK == k, c));
-        steF(j) = std(P(~Index_Sex & Index_Conditions == j, rangeK == k, c)) / sqrt(numel(P(~Index_Sex & Index_Conditions == j, rangeK == k, c)));
+        P_condF{j} = P(~Index_Sex & Index_Conditions == j, ki, c);
+        mean_P_condF(j) = nanmean(P(~Index_Sex & Index_Conditions == j, ki, c));
+        steF(j) = std(P(~Index_Sex & Index_Conditions == j, ki, c)) / sqrt(numel(P(~Index_Sex & Index_Conditions == j, ki, c)));
         % MALE
-        P_condM{j} = P(Index_Sex & Index_Conditions == j, rangeK == k, c);
-        mean_P_condM(j) = nanmean(P(Index_Sex & Index_Conditions == j, rangeK == k, c));
-        steM(j) = std(P(Index_Sex & Index_Conditions == j, rangeK == k, c)) / sqrt(numel(P(Index_Sex & Index_Conditions == j, rangeK == k, c)));
+        P_condM{j} = P(Index_Sex & Index_Conditions == j, ki, c);
+        mean_P_condM(j) = nanmean(P(Index_Sex & Index_Conditions == j, ki, c));
+        steM(j) = std(P(Index_Sex & Index_Conditions == j, ki, c)) / sqrt(numel(P(Index_Sex & Index_Conditions == j, ki, c)));
     end
     hold on
     x = 1:n_Cond;
@@ -101,7 +105,7 @@ for Mode = 1:N_Modes
     
     
     % Retrieve the centroid vector and reshape it to a 3D volume.
-    Vc = Kmeans_results{rangeK==k}.C(c, :);
+    Vc = Kmeans_results{ki}.C(c, :);
     Vc_3D = zeros(size(MNI_lowres_Mask));
     Vc_3D(ind_voxels) = Vc;
     Vc_3D = smooth3(Vc_3D, 'gaussian', 3, 0.4);
@@ -144,11 +148,11 @@ for Mode = 1:N_Modes
     end
     
     % Display results for the current centroid.
-    disp(['Results for k = ' num2str(k) ' c = ' num2str(c)]);
+    disp(['Results for K = ' num2str(rangeK(ki)) ' (mode c = ' num2str(c) ')']);
     for condpair = 1:size(P_pval, 1)
         disp([num2str(condpair) ' : ' num2str(cond{condRow(condpair)}) ' - ' num2str(cond{condCol(condpair)})]);
-        disp(['     permutation p-value = ' num2str(P_pval(condpair, rangeK == k, c), 3)]);
-        disp(['     effect size = ' num2str(effectsize(condpair, rangeK == k, c), 3)]);
+        disp(['     permutation p-value = ' num2str(P_pval(condpair, ki, c), 3)]);
+        disp(['     effect size = ' num2str(effectsize(condpair, ki, c), 3)]);
     end
 end
 
@@ -169,7 +173,7 @@ colormap(cmap_blue_red);
 % Loop over each centroid (sorted) for the selected K.
 for Mode = 1:N_Modes
 
-    k=Key_Modes_Increase(N_Modes-Mode+1,1);   
+    ki=Key_Modes_Increase(N_Modes-Mode+1,1);
     c=Key_Modes_Increase(N_Modes-Mode+1,2);
 
     % Create subplot for barplot (error bars)
@@ -181,17 +185,17 @@ for Mode = 1:N_Modes
     mean_P_cond = zeros(1, n_Cond);
     ste = zeros(1, n_Cond);
     for j = 1:n_Cond
-        P_cond{j} = P(Index_Conditions == j, rangeK == k, c);
-        mean_P_cond(j) = nanmean(P(Index_Conditions == j, rangeK == k, c));
-        ste(j) = std(P(Index_Conditions == j, rangeK == k, c)) / sqrt(numel(P(Index_Conditions == j, rangeK == k, c)));
+        P_cond{j} = P(Index_Conditions == j, ki, c);
+        mean_P_cond(j) = nanmean(P(Index_Conditions == j, ki, c));
+        ste(j) = std(P(Index_Conditions == j, ki, c)) / sqrt(numel(P(Index_Conditions == j, ki, c)));
         % FEMALE
-        P_condF{j} = P(~Index_Sex & Index_Conditions == j, rangeK == k, c);
-        mean_P_condF(j) = nanmean(P(~Index_Sex & Index_Conditions == j, rangeK == k, c));
-        steF(j) = std(P(~Index_Sex & Index_Conditions == j, rangeK == k, c)) / sqrt(numel(P(~Index_Sex & Index_Conditions == j, rangeK == k, c)));
+        P_condF{j} = P(~Index_Sex & Index_Conditions == j, ki, c);
+        mean_P_condF(j) = nanmean(P(~Index_Sex & Index_Conditions == j, ki, c));
+        steF(j) = std(P(~Index_Sex & Index_Conditions == j, ki, c)) / sqrt(numel(P(~Index_Sex & Index_Conditions == j, ki, c)));
         % MALE
-        P_condM{j} = P(Index_Sex & Index_Conditions == j, rangeK == k, c);
-        mean_P_condM(j) = nanmean(P(Index_Sex & Index_Conditions == j, rangeK == k, c));
-        steM(j) = std(P(Index_Sex & Index_Conditions == j, rangeK == k, c)) / sqrt(numel(P(Index_Sex & Index_Conditions == j, rangeK == k, c)));
+        P_condM{j} = P(Index_Sex & Index_Conditions == j, ki, c);
+        mean_P_condM(j) = nanmean(P(Index_Sex & Index_Conditions == j, ki, c));
+        steM(j) = std(P(Index_Sex & Index_Conditions == j, ki, c)) / sqrt(numel(P(Index_Sex & Index_Conditions == j, ki, c)));
     end
     hold on
         x = 1:n_Cond;
@@ -207,7 +211,7 @@ for Mode = 1:N_Modes
     hold off, box off
     
     % Retrieve the centroid vector and reshape it to a 3D volume.
-    Vc = Kmeans_results{k}.C(c, :);
+    Vc = Kmeans_results{ki}.C(c, :);
     Vc_3D = zeros(size(MNI_lowres_Mask));
     Vc_3D(ind_voxels) = Vc;
     Vc_3D = smooth3(Vc_3D, 'gaussian', 3, 0.4);
@@ -243,11 +247,11 @@ for Mode = 1:N_Modes
     end
     
     % Display results for the current centroid.
-    disp(['Results for k = ' num2str(k) ' c = ' num2str(c)]);
+    disp(['Results for K = ' num2str(rangeK(ki)) ' (mode c = ' num2str(c) ')']);
     for condpair = 1:size(P_pval, 1)
         disp([num2str(condpair) ' : ' num2str(cond{condRow(condpair)}) ' - ' num2str(cond{condCol(condpair)})]);
-        disp(['     permutation p-value = ' num2str(P_pval(condpair, rangeK == k, c), 3)]);
-        disp(['     effect size = ' num2str(effectsize(condpair, rangeK == k, c), 3)]);
+        disp(['     permutation p-value = ' num2str(P_pval(condpair, ki, c), 3)]);
+        disp(['     effect size = ' num2str(effectsize(condpair, ki, c), 3)]);
     end
 end
 
