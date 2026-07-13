@@ -1,25 +1,18 @@
-function run_LEiDA_vox(data_dir, results_dir)
-% run_LEiDA_vox  Code Ocean capsule entry point for the voxel-space LEiDA
-% pipeline, starting from already-extracted leading eigenvectors.
+%% run_LEiDA_vox.m
+%
+% Code Ocean capsule script for the voxel-space LEiDA pipeline, starting from
+% already-extracted leading eigenvectors. Meant to be run directly (not
+% called as a function) from a Code Ocean capsule with the standard
+% code/data/results layout (this file living in code/).
 %
 % Clusters the leading eigenvectors for K = 2:20, extracts mode occupancies
 % (optionally ComBat-harmonized), tests for differences between conditions
 % (Step 3a) and correlates mode occupancy with clinical/cognitive scores
 % (Step 3b), and generates all summary figures (Step 4). Eigenvector
 % extraction (Step 1: Get_EigenVectors_VoxelSpace_Server.m, which reads raw
-% fMRI NIfTI files) is NOT run here - it is a script, not a function, and
-% needs the full-size raw fMRI data that isn't part of this capsule. Run it
-% offline beforehand; this function only reads its output.
-%
-% Intended to be called with no arguments from a Code Ocean capsule with the
-% standard code/data/results layout (this file living in code/): it then
-% looks for its inputs in ../data and writes all outputs to ../results.
-%
-% INPUT (both optional; default to the Code Ocean capsule layout):
-%   data_dir    - Directory with the eigenvector file and Scores table.
-%                 Default: '../data/'
-%   results_dir - Directory where all outputs (clusters, occupancies, stats,
-%                 figures) are saved. Default: '../results/'
+% fMRI NIfTI files) is NOT run here - it is a separate script that needs the
+% full-size raw fMRI data that isn't part of this capsule. Run it offline
+% beforehand; this script only reads its output.
 %
 % Expected files in data_dir (rename file_V1/Scores_Table below to match):
 %   'LEiDA_V1_all_MNI10mm_demo.mat' - eigenvectors, as saved by
@@ -29,13 +22,12 @@ function run_LEiDA_vox(data_dir, results_dir)
 %       PTGENDER, PTEDUCAT, DX_num, DX columns (plus the score columns used
 %       by Scores_vs_Mode_Occupancy.m), subsetted to the same scans as file_V1.
 %
-% Example (from within a Code Ocean capsule, cwd = code/):
-%   run_LEiDA_vox();
-%
 % Author: Joana Cabral, University of Lisbon, joanabcabral@tecnico.ulisboa.pt
 
-if nargin < 1 || isempty(data_dir),    data_dir    = '../data/';    end
-if nargin < 2 || isempty(results_dir), results_dir = '../results/'; end
+%% Directories - edit these if not running inside a Code Ocean capsule
+data_dir    = '../data/';      % Directory with the eigenvector file and Scores table
+results_dir = '../results/';   % Directory where all outputs are saved
+
 if ~exist(results_dir, 'dir'), mkdir(results_dir); end
 
 addpath(genpath(fileparts(mfilename('fullpath'))));
