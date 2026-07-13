@@ -1,4 +1,4 @@
-function Scores_vs_Mode_Occupancy(P,Scores_Table,Key_Modes_KC,results_dir,save_name)
+function Scores_vs_Mode_Occupancy(P,Scores_Table,Key_Modes_KC,results_dir,cluster_file,save_name,pyramid_stats_file)
 % Scores_vs_Mode_Occupancy correlates the occupancy of a set of modes with a
 % set of clinical/cognitive scores (partial correlation, controlling for age).
 %
@@ -8,16 +8,29 @@ function Scores_vs_Mode_Occupancy(P,Scores_Table,Key_Modes_KC,results_dir,save_n
 % been run. This makes it usable for studies with no discrete conditions to
 % compare, only continuous scores to correlate with mode occupancy.
 %
+% Two analyses are performed:
+%   1. Key modes only (Key_Modes_KC): bar plots + CSV of correlations, as before.
+%   2. Entire pyramid (every mode, every K in rangeK): correlates every score
+%      against every mode, reports to the command line whether any mode
+%      survives significance at 0.05/sum(rangeK)/N_scores (Bonferroni across
+%      the whole pyramid AND across scores), and saves the resulting p-values
+%      in a format that Plot_ClustVoxelCentroid_Pyramid_RSNs.m can load in
+%      place of the permutation-test p-values (pass pyramid_stats_file as its
+%      stats_file, and use cond_pair to select which score to display).
+%
 % INPUT:
-%   P            - Fractional occupancy matrix (N_scans x length(rangeK) x rangeK(end)),
-%                  e.g. P_original or P_harmonized from Save_Occupancies_Harmonize.
-%   Scores_Table : .mat file with the Scores_ADNI table.
-%   Key_Modes_KC : Nx2+ matrix with one row per mode to analyze, [ki c ...].
-%                  ki is the POSITION of the clustering solution in rangeK
-%                  (i.e. P's 2nd dimension index), NOT the literal number of
-%                  clusters - e.g. if rangeK = 2:20, ki=1 means K=2 clusters.
-%   results_dir  : Directory where the figure/CSV/mat outputs are saved.
-%   save_name    : Output .mat filename for the correlation results.
+%   P                - Fractional occupancy matrix (N_scans x length(rangeK) x rangeK(end)),
+%                      e.g. P_original or P_harmonized from Save_Occupancies_Harmonize.
+%   Scores_Table     : .mat file with the Scores_ADNI table.
+%   Key_Modes_KC     : Nx2+ matrix with one row per mode to analyze, [ki c ...].
+%                      ki is the POSITION of the clustering solution in rangeK
+%                      (i.e. P's 2nd dimension index), NOT the literal number of
+%                      clusters - e.g. if rangeK = 2:20, ki=1 means K=2 clusters.
+%   results_dir      : Directory where the figure/CSV/mat outputs are saved.
+%   cluster_file     : Clustering results file name (used to load rangeK).
+%   save_name        : Output .mat filename for the key-modes correlation results.
+%   pyramid_stats_file : Output .mat filename for the entire-pyramid p-values,
+%                      loadable by Plot_ClustVoxelCentroid_Pyramid_RSNs.m.
 %
 % NOTE: The set of score columns used (Genetics/Biomarkers/Cognitive_functions
 % indices below) is hardcoded for the ADNI Scores_ADNI table used in Campo et
@@ -26,6 +39,7 @@ function Scores_vs_Mode_Occupancy(P,Scores_Table,Key_Modes_KC,results_dir,save_n
 % Author: Joana Cabral, University of Lisbon, joanabcabral@tecnico.ulisboa.pt
 
 load(Scores_Table,'Scores_ADNI')
+load([results_dir cluster_file], 'rangeK')
 
 Mode_colors=[137 207 240; 227 120 91; 250 221 107; 207 225 185] ./ 256;
 
@@ -133,4 +147,59 @@ end
 fclose(fid);
 
 save(fullfile(results_dir, save_name),'P_Mode','Age','Biomarkers','Cognitive_functions','Genetics','Scores_ADNI','Selected_scores','Rho')
+
+%% --- Entire pyramid: correlate every score with every mode, for every K ---
+% Bonferroni threshold across the whole pyramid (sum(rangeK) modes) AND across
+% all scores tested, matching the convention used elsewhere in this pipeline
+% (e.g. Choose_Relevant_Modes.m uses 0.05/sum(rangeK) for a single comparison).
+N_scores = length(Selected_scores);
+N_modes_pyramid = sum(rangeK);
+alpha_pyramid = 0.05 / N_modes_pyramid / N_scores;
+
+Rho_pyramid  = zeros(N_scores, length(rangeK), rangeK(end));
+Pval_pyramid = zeros(N_scores, length(rangeK), rangeK(end));
+
+fprintf('\n=== Correlating %d scores with all %d modes across K=%d:%d (Bonferroni alpha = %.2e) ===\n', ...
+    N_scores, N_modes_pyramid, rangeK(1), rangeK(end), alpha_pyramid);
+
+for Score = 1:N_scores
+    col = Scores_ADNI{:, Selected_scores(Score)};
+    valid_values = find(~isnan(col));
+
+    for ki = 1:length(rangeK)
+        for c = 1:rangeK(ki)
+            P_mode_vec = squeeze(P(:, ki, c));
+            [Rho_pyramid(Score, ki, c), Pval_pyramid(Score, ki, c)] = ...
+                partialcorr(col(valid_values), P_mode_vec(valid_values), Age(valid_values), 'rows', 'complete');
+        end
+    end
+
+    score_name = Scores_ADNI.Properties.VariableNames{Selected_scores(Score)};
+    Pval_score = squeeze(Pval_pyramid(Score, :, :));
+    sig_mask = Pval_score > 0 & Pval_score < alpha_pyramid;
+
+    if any(sig_mask(:))
+        [ki_sig, c_sig] = find(sig_mask);
+        [~, best] = min(Pval_score(sig_mask));
+        fprintf('%s: SIGNIFICANT - %d mode(s) survive Bonferroni (min p = %.2e at K=%d, mode %d)\n', ...
+            score_name, numel(ki_sig), Pval_score(ki_sig(best), c_sig(best)), rangeK(ki_sig(best)), c_sig(best));
+    else
+        fprintf('%s: not significant (min p = %.2e)\n', score_name, min(Pval_score(Pval_score > 0)));
+    end
+end
+
+% --- Save in a format Plot_ClustVoxelCentroid_Pyramid_RSNs.m can load directly
+% as stats_file: P_pval here has one "row" per score (instead of per condition
+% pair), so pass cond_pair as a score index when calling that function.
+P_pval = Pval_pyramid; %#ok<NASGU>
+Score_labels = Scores_ADNI.Properties.VariableNames(Selected_scores); %#ok<NASGU>
+cond = Score_labels; %#ok<NASGU>
+condRow = 1:N_scores; %#ok<NASGU>
+condCol = 1:N_scores; %#ok<NASGU>
+Index_Conditions = Scores_ADNI.DX_num + 1; %#ok<NASGU>
+
+save(fullfile(results_dir, pyramid_stats_file), ...
+    'P', 'P_pval', 'Rho_pyramid', 'cond', 'condRow', 'condCol', 'Index_Conditions', ...
+    'Score_labels', 'Selected_scores', 'rangeK', '-v7.3');
+fprintf('\nPyramid-wide score p-values saved to %s\n', pyramid_stats_file);
 %

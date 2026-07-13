@@ -10,10 +10,16 @@ function Plot_ClustVoxelCentroid_Pyramid_RSNs(results_dir, file_clusters, stats_
 %   results_dir   - Directory where the clustering centroids and statistical results are saved.
 %   file_clusters - Filename (.mat) containing K-means clustering results (centroids, rangeK, mask).
 %   stats_file    - Filename (.mat) with statistical results and occupancy values (P, P_pval, cond, etc.).
+%                   Either the output of LEiDA_stats_Voxel_FracOccup_ComBat.m
+%                   (P_pval indexed by condition pair) or the pyramid_stats_file
+%                   output of Scores_vs_Mode_Occupancy.m (P_pval indexed by
+%                   score instead, one "row" per score).
 %   save_name     - Base name for saving the output figure.
 %   overlap_Yeo   - Flag (1/0) to indicate whether to color voxels using Yeo network colors.
 %   cortex_dir    - View direction for rendering (e.g., 'TopView' or 'SideView').
-%   cond_pair     - Index of the condition pair for which p-values will be reported.
+%   cond_pair     - Index into P_pval's first dimension: a condition pair when
+%                   stats_file comes from LEiDA_stats_Voxel_FracOccup_ComBat.m,
+%                   or a score index when it comes from Scores_vs_Mode_Occupancy.m.
 %   Add_asterisks - Flag to indicate whether to overlay significance markers on the plot.
 %
 % OUTPUT:
@@ -29,12 +35,22 @@ load([results_dir file_clusters], 'Kmeans_results', 'rangeK', 'MNI_lowres_Mask',
 
 % Load statistical occupancy data and condition info.
 load([results_dir stats_file], 'P', 'P_pval', 'cond', 'condCol', 'condRow', 'Index_Conditions');
-n_Cond=size(P_pval,1);
+% n_Cond is the number of actual conditions (for the occupancy bar plots below),
+% NOT the size of P_pval's first dimension - that dimension may instead index
+% scores (one "row" per score) when stats_file comes from
+% Scores_vs_Mode_Occupancy.m's pyramid-wide output, rather than condition pairs.
+n_Cond = length(unique(Index_Conditions));
 
-% Display condition pair information (e.g., "Condition A vs Condition B")
-disp(['P-values reported for ' cond{condRow(cond_pair)} ' vs ' cond{condCol(cond_pair)}]);
+% Display which comparison cond_pair selects: a condition pair (e.g. "A vs B"),
+% or, when condRow(cond_pair)==condCol(cond_pair) (pyramid-wide score p-values),
+% a single score name.
+if condRow(cond_pair) == condCol(cond_pair)
+    disp(['P-values reported for score: ' cond{condRow(cond_pair)}]);
+else
+    disp(['P-values reported for ' cond{condRow(cond_pair)} ' vs ' cond{condCol(cond_pair)}]);
+end
 
-% Extract p-values for the specified condition pair for each clustering solution.
+% Extract p-values for the specified condition pair (or score) for each clustering solution.
 P_pval = squeeze(P_pval(cond_pair, :, :));
 
 %% Load RSN Parcellation and Prepare Mask

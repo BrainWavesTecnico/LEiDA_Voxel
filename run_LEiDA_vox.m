@@ -113,6 +113,6 @@ end
 
 Plot_KeyModes_Slices_Stats(results_dir, cluster_file, stats_file, 'Fig1_Key_modes', Key_Modes_KC, Scores_Table);
 Plot_Mode_TransparentBrain(results_dir, cluster_file, Key_Modes_KC);
-Scores_vs_Mode_Occupancy(P, Scores_Table, Key_Modes_KC, results_dir, 'Scores_Mode_Stats.mat');
+Scores_vs_Mode_Occupancy(P, Scores_Table, Key_Modes_KC, results_dir, cluster_file, 'Scores_Mode_Stats.mat', 'Scores_Pyramid_Pval.mat');
 
 fprintf('\n=== LEiDA Voxel pipeline complete. Results saved to %s ===\n', results_dir);

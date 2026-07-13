@@ -130,9 +130,8 @@
 %      n_bootstraps      : Number of bootstrap samples (e.g., 0-50).
 %      P                 : Fractional occupancy matrix; pass P_original or
 %                          P_harmonized from step 2b, whichever you want to
-%                          test. Whichever is passed gets saved as P inside
-%                          file_stats, so Scores_vs_Mode_Occupancy (which reads
-%                          P from file_stats) automatically uses the same one.
+%                          test. Pass the same P to Scores_vs_Mode_Occupancy
+%                          (step 9) to keep the two analyses consistent.
 %
 %    Example:
 %      LEiDA_stats_Voxel_FracOccup_ComBat(results_dir, cluster_file, stats_file, cond, Index_Conditions, pair, n_permutations, n_bootstraps, P);
@@ -221,7 +220,15 @@
 % 9. Scores_vs_Mode_Occupancy
 %    - Purpose: Correlates (partial correlation, controlling for age) the
 %               occupancy of each key mode with a set of clinical/cognitive
-%               scores, plots the results, and exports them to a CSV.
+%               scores, plots the results, and exports them to a CSV. ALSO
+%               correlates every score against every mode in the entire
+%               pyramid (every K in rangeK), prints to the command line
+%               whether any mode survives Bonferroni across the whole pyramid
+%               and all scores (0.05/sum(rangeK)/N_scores), and saves those
+%               p-values so Plot_ClustVoxelCentroid_Pyramid_RSNs.m can use
+%               them instead of the permutation-test p-values (pass
+%               pyramid_stats_file as its stats_file; cond_pair then selects
+%               which score to display).
 %    - Takes the occupancy matrix P directly (e.g. P_original or P_harmonized
 %      from step 2b), NOT from stats_file, so it does not depend on step 3
 %      (LEiDA_stats_Voxel_FracOccup_ComBat) having been run. This makes it
@@ -233,15 +240,17 @@
 %      adapt these indices for a different scores table.
 %
 %    Inputs:
-%      P            : Fractional occupancy matrix (P_original or P_harmonized).
-%      Scores_Table : .mat file with the Scores_ADNI table.
-%      Key_Modes_KC : Nx2+ matrix, [ki c ...] - see step 6 above for the ki
-%                     (position, not literal K) convention.
-%      results_dir  : Directory where the figure/CSV/mat outputs are saved.
-%      save_name    : Output .mat filename for the correlation results.
+%      P                  : Fractional occupancy matrix (P_original or P_harmonized).
+%      Scores_Table       : .mat file with the Scores_ADNI table.
+%      Key_Modes_KC       : Nx2+ matrix, [ki c ...] - see step 6 above for the ki
+%                           (position, not literal K) convention.
+%      results_dir        : Directory where the figure/CSV/mat outputs are saved.
+%      cluster_file       : Clustering results file name (used to load rangeK).
+%      save_name          : Output .mat filename for the key-modes correlation results.
+%      pyramid_stats_file : Output .mat filename for the entire-pyramid p-values.
 %
 %    Example:
-%      Scores_vs_Mode_Occupancy(P, Scores_Table, Key_Modes_KC, results_dir, save_name);
+%      Scores_vs_Mode_Occupancy(P, Scores_Table, Key_Modes_KC, results_dir, cluster_file, save_name, pyramid_stats_file);
 %
 % Complete Pipeline Example:
 % ----------------------------------------------
@@ -297,8 +306,15 @@
 %        Plot_Mode_TransparentBrain(results_dir, cluster_file, Key_Modes_KC);
 %
 %     e. Correlate key mode occupancy with clinical/cognitive scores (only
-%        requires P and Key_Modes_KC, not step 4):
-%        Scores_vs_Mode_Occupancy(P, Scores_Table, Key_Modes_KC, results_dir, 'Scores_Mode_Stats.mat');
+%        requires P and Key_Modes_KC, not step 4), and also scan the entire
+%        pyramid of modes for score correlations:
+%        Scores_vs_Mode_Occupancy(P, Scores_Table, Key_Modes_KC, results_dir, cluster_file, 'Scores_Mode_Stats.mat', 'Scores_Pyramid_Pval.mat');
+%
+%     f. Optionally, render the pyramid colored/marked by score significance
+%        instead of condition-comparison significance (score_index selects
+%        which score, per the command-line report from step e):
+%        score_index = 1;
+%        Plot_ClustVoxelCentroid_Pyramid_RSNs(results_dir, cluster_file, 'Scores_Pyramid_Pval.mat', 'Centroid_Pyramid_ScorePval', overlap_RSNs, cortex_dir, score_index, 1);
 %
 %==========================================================================
 %% Setup Library of Directories and File Names 
@@ -451,6 +467,17 @@ Plot_Mode_TransparentBrain(results_dir, cluster_file, Key_Modes_KC);
 % Runs directly on P (P_original or P_harmonized from step 2b), independent of
 % the condition-comparison statistics in step 3 - so this also works for
 % studies with continuous scores only and no discrete conditions to test.
+% Also correlates every score with every mode in the entire pyramid (all K),
+% reports per-score significance to the command line, and saves the p-values
+% to pyramid_stats_file for use by Plot_ClustVoxelCentroid_Pyramid_RSNs.m.
 
 save_name='Scores_Mode_Stats.mat';
-Scores_vs_Mode_Occupancy(P,Scores_Table,Key_Modes_KC,results_dir,save_name)
+pyramid_stats_file='Scores_Pyramid_Pval.mat';
+Scores_vs_Mode_Occupancy(P,Scores_Table,Key_Modes_KC,results_dir,cluster_file,save_name,pyramid_stats_file)
+
+%% Figure 6b (optional): Render the pyramid colored/marked by score significance
+% score_index selects which score's p-values to display (see the command-line
+% report above for which scores had significant modes); condition-comparison
+% asterisk thresholds still apply since they're all relative to sum(rangeK).
+% score_index = 1;
+% Plot_ClustVoxelCentroid_Pyramid_RSNs(results_dir, cluster_file, pyramid_stats_file, 'Centroid_Pyramid_ScorePval', overlap_RSNs, cortex_dir, score_index, 1);
