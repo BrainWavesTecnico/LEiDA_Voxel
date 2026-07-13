@@ -36,7 +36,10 @@ Figures are saved at each step in the results folder in both `.fig` and `.png`/`
 
 ```
 run_LEiDA_Voxel.m                    Main pipeline script (documents and runs all steps)
-run_LEiDA_Voxel_CodeOcean.m          Code Ocean capsule entry point (steps 2-4, from pre-extracted eigenvectors; step 1 documented but run offline)
+CodeOcean_Capsule/                   Standalone Code Ocean capsule (self-contained copy of the pipeline)
+  code/run_LEiDA_Voxel_CodeOcean.m     Capsule entry point (steps 2-4, from pre-extracted eigenvectors)
+  data/                                Put demo eigenvector + Scores files here (not tracked in git)
+  results/                             Outputs written here automatically
 Select_Demo_Subsample.m              One-off local script: build a balanced demo subsample for the capsule's data/
 Mask_Voxels_of_Interest.m            Step 0: build a custom voxel mask
 Get_EigenVectors_VoxelSpace_Server.m Step 1: extract leading eigenvectors from fMRI data
@@ -63,14 +66,17 @@ See the header comments in `run_LEiDA_Voxel.m` for the full function reference, 
 
 ## Code Ocean capsule
 
-[`run_LEiDA_Voxel_CodeOcean.m`](run_LEiDA_Voxel_CodeOcean.m) is a standalone script (edit `data_dir`/`results_dir` at its top, default to Code Ocean's `../data/`/`../results/`) for reproducing the pipeline as a Code Ocean capsule, starting from already-extracted leading eigenvectors (i.e. skipping step 0/1, which need the raw fMRI NIfTI files):
+[`CodeOcean_Capsule/`](CodeOcean_Capsule/) is a self-contained copy of the pipeline, structured as a standard Code Ocean capsule (`code/`, `data/`, `results/`), starting from already-extracted leading eigenvectors (i.e. skipping step 0/1, which need the raw fMRI NIfTI files). It's independent of the rest of this repository — `code/` already has its own copies of every function file it needs (including `combat/` and `utilities/`), so the folder can be uploaded to Code Ocean as-is.
 
 1. On your own machine, with the full cohort's already-extracted eigenvectors and `Scores_ADNI` table, run [`Select_Demo_Subsample.m`](Select_Demo_Subsample.m) to pick a small, balanced, unique-participant demo subsample (e.g. 30 scans per condition) and save the two demo files.
-2. In the capsule, put those two files in `data/` (named to match `file_V1`/`Scores_Table` inside `run_LEiDA_Voxel_CodeOcean.m`, or edit those two lines to match your filenames).
-3. Put all the `.m` files (including `combat/` and `utilities/`) in `code/`.
-4. `results/` is written to automatically; run `run_LEiDA_Voxel_CodeOcean.m` and it runs Step 2 (cluster K=2:20), Step 2b (occupancies), Step 3a (condition statistics), Step 3b (pyramid-wide score correlations), and Step 4 (all figures, including key-mode selection and the key-modes-vs-scores figure) — Step 1 (eigenvector extraction) is the offline step you did in (1) above, since it needs the raw fMRI data that isn't part of this capsule.
+2. Copy those two files into [`CodeOcean_Capsule/data/`](CodeOcean_Capsule/data/) (named to match `file_V1`/`Scores_Table` inside `CodeOcean_Capsule/code/run_LEiDA_Voxel_CodeOcean.m`, or edit those two lines to match your filenames).
+3. Run [`CodeOcean_Capsule/code/run_LEiDA_Voxel_CodeOcean.m`](CodeOcean_Capsule/code/run_LEiDA_Voxel_CodeOcean.m) (it defaults to reading `../data/` and writing `../results/`, matching Code Ocean's convention). It runs Step 2 (cluster K=2:20), Step 2b (occupancies), Step 3a (condition statistics), Step 3b (pyramid-wide score correlations), and Step 4 (all figures, including key-mode selection and the key-modes-vs-scores figure) — Step 1 (eigenvector extraction) is the offline step you did in (1) above, since it needs the raw fMRI data that isn't part of this capsule.
+
+See [`CodeOcean_Capsule/README.md`](CodeOcean_Capsule/README.md) for capsule-specific notes.
 
 ComBat harmonization is off by default in the capsule (`apply_combat = 0` inside `run_LEiDA_Voxel_CodeOcean.m`) since a small demo subsample is unlikely to have enough scans per site for reliable harmonization — turn it on if your demo data spans multiple well-populated sites. If no mode survives the significance threshold on the reduced sample (likely with far fewer scans than the full study), the driver falls back to a fixed mid-K mode selection so the figure-generation steps still produce output, and logs a warning explaining why.
+
+**Keeping the capsule in sync**: `CodeOcean_Capsule/code/` holds copies, not symlinks, of the shared pipeline functions (everything except `Get_EigenVectors_VoxelSpace_Server.m`, `Mask_Voxels_of_Interest.m`, and `run_LEiDA_Voxel.m` itself, which the capsule doesn't need). If you edit one of the shared functions at the repository root, copy the change into `CodeOcean_Capsule/code/` too.
 
 ## Notes
 

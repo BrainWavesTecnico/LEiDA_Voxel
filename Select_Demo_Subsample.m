@@ -2,8 +2,9 @@
 %
 % One-off, local data-prep script: selects a small, balanced demo subsample
 % (unique participants, equal N per condition) from your full leading
-% eigenvectors + Scores_ADNI table, and saves the two files run_LEiDA_Voxel_CodeOcean.m
-% expects in its data/ folder for a Code Ocean capsule.
+% eigenvectors + Scores_ADNI table, and saves the two files
+% CodeOcean_Capsule/code/run_LEiDA_Voxel_CodeOcean.m expects in
+% CodeOcean_Capsule/data/.
 %
 % This is NOT part of the analysis pipeline itself - run it once, locally,
 % against your full dataset, to produce the small demo files you upload to
@@ -31,7 +32,7 @@ ID_column   = 'RID';   % CHANGE to your table's unique-participant column, e.g. 
 n_per_condition = 30;  % scans per condition in the demo (30+30+30 = 90 total)
 rng_seed = 42;          % fixed seed for reproducibility
 
-out_dir  = 'data/';                              % local output folder for the capsule
+out_dir  = 'CodeOcean_Capsule/data/';            % local output folder for the capsule
 file_V1_demo      = 'LEiDA_V1_all_MNI10mm_demo.mat';
 Scores_Table_demo = 'Scores_ADNI_demo.mat';
 
