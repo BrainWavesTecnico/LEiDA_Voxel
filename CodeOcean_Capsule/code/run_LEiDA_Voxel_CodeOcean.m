@@ -108,9 +108,10 @@ if isempty(Key_Modes_KC)
     % (ki is the POSITION in rangeK, not the literal number of clusters).
     warning('run_LEiDA_Voxel_CodeOcean:noSignificantModes', ...
         ['No mode survived the significance threshold on this demo subsample; ' ...
-         'falling back to a fixed selection of modes for illustration.']);
-    ki_demo = min(4, length(rangeK));
-    n_demo = min(3, rangeK(ki_demo));
+         'falling back to showing the full repertoire of modes for illustration.']);
+    target_K = 4;   % literal number of clusters to show (not a position in rangeK)
+    [~, ki_demo] = min(abs(rangeK - target_K));   % position in rangeK closest to target_K
+    n_demo = rangeK(ki_demo);   % show every mode at this K, not just a subset
     Key_Modes_KC = zeros(n_demo, 3);
     for m = 1:n_demo
         mean_P_cond = zeros(1, length(Condition_tags));
