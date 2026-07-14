@@ -155,8 +155,11 @@ V1_all = V1_all_demo;
 Scan_num = Scan_num_demo;
 
 %% Save the demo files
+% V1_all is saved as 'single' (halves the file size); LEiDA_cluster_VoxelMNI10mm.m
+% converts it back to 'double' automatically before clustering.
 if ~exist(out_dir, 'dir'), mkdir(out_dir); end
 
+V1_all = single(V1_all);
 save(fullfile(out_dir, file_V1_demo), ...
     'V1_all', 'ind_voxels', 'MNI_lowres_Mask', 'data_info', 'Scan_num', 'Scan_length', '-v7.3');
 save(fullfile(out_dir, Scores_Table_demo), 'Scores_ADNI', '-v7.3');

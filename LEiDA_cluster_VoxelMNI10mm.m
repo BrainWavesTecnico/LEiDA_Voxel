@@ -33,8 +33,13 @@ disp('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% CLUSTERING %%%%%%%%%%%%%%%%%%%%%%%%%%
 % Load Leading Eigenvectors
 % -------------------------------------------------------------------------
 % Construct the full path to the file containing leading eigenvectors.
-% The variable V1_all is assumed to be stored in the .mat file.
+% The variable V1_all is assumed to be stored in the .mat file, possibly
+% as 'single' to save disk space (e.g. Select_Demo_Subsample.m) - kmeans
+% below expects double precision, so convert back if needed.
 load([data_dir file_V1], 'V1_all');
+if ~isa(V1_all, 'double')
+    V1_all = double(V1_all);
+end
 
 % -------------------------------------------------------------------------
 % Define Cluster Range and Prepare Result Storage

@@ -1,0 +1,6 @@
+# Demo/input data for the Code Ocean capsule is not tracked in git (files are
+# far too large for GitHub - see CodeOcean_Capsule/data/README.md). Upload
+# data directly to Code Ocean as a Data Asset instead.
+CodeOcean_Capsule/data/*.mat
+CodeOcean_Capsule/results/*
+!CodeOcean_Capsule/results/.gitkeep
