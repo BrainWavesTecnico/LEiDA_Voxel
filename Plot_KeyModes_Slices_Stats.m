@@ -58,7 +58,7 @@ Mask_Brain = imresize3(Mask_Brain, size_MNI, 'Method', 'linear');
 Key_Modes_Decrease=Key_Modes_KC(Key_Modes_KC(:,3)<0,:);
 N_Modes=size(Key_Modes_Decrease,1);
 
-Fig = figure('Color'); %, 'w', 'Position',[14          -1         765         340*N_Modes]);
+Fig = figure('Color', 'w'); % , 'Position',[14          -1         765         340*N_Modes]);
 colormap(cmap_blue_red);
 
 n_slices=9;
