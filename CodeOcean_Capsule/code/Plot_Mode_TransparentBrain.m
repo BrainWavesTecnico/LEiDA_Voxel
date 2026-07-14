@@ -61,10 +61,14 @@ Mask_Brain = imresize3(Mask_Brain, size_MNI, 'Method', 'linear');
 % Use figure handles (not hardcoded numbers) so this always opens new
 % figures, even if earlier plotting steps already created Figure 1/2/3.
 Fig1 = figure('Position', [521         229        1220         699], 'Name', 'Key modes - 3D renders and RSN overlap');
-Fig2 = figure('Position', [ 423     2   801   998], 'Name', 'Key modes - AAL120 atlas');
-sgtitle(Fig2, 'Brain areas involved in each key mode (AAL120 atlas)');
-Fig3 = figure('Position', [ 423     2   801   998], 'Name', 'Key modes - Desikan-Killiany atlas');
-sgtitle(Fig3, 'Brain areas involved in each key mode (Desikan-Killiany atlas)');
+% AAL120/Desikan brain-area-list figures are disabled in the capsule (kept
+% in the main repo copy of this file) to keep the demo run's figure output
+% minimal. Uncomment below (and the matching block further down) to
+% re-enable them.
+% Fig2 = figure('Position', [ 423     2   801   998], 'Name', 'Key modes - AAL120 atlas');
+% sgtitle(Fig2, 'Brain areas involved in each key mode (AAL120 atlas)');
+% Fig3 = figure('Position', [ 423     2   801   998], 'Name', 'Key modes - Desikan-Killiany atlas');
+% sgtitle(Fig3, 'Brain areas involved in each key mode (Desikan-Killiany atlas)');
   
 
 for Mode = 1:N_Modes
@@ -188,50 +192,52 @@ for Mode = 1:N_Modes
         set(gca,"YGrid","on")
 
 
-        Vc_AAL120 = zeros(1, max(V_AAL120(:)));
-        Vc_3D = Vc_3D(:);
-        for v = 1:max(V_AAL120(:))
-            ind_area = V_AAL120 == v;
-            Vc_AAL120(v) = mean(Vc_3D(ind_area) > 0);
-        end
-        [Vc_AAL_reoder, order_indices] = sort(Vc_AAL120, 'descend');
-        label120_reorder = label120(order_indices, :);
-
-        figure(Fig2)
-        subplot(1,N_Modes-1,Mode-1)
-        barh(Vc_AAL_reoder(end:-1:1), 'FaceColor', [0.3 0.3 0.3], 'EdgeColor', 'none')
-        yticks(1:max(V_AAL120(:)))
-        yticklabels(label120_reorder(end:-1:1, :))
-
-        set(gca, 'Fontsize', 8)
-        ylim([0 size(Vc_AAL_reoder, 2)+.5])
-        title(['BraVe Mode ' num2str(Mode)], 'FontSize', 10)
-        set(gcf, 'Position', [620 65 372 982])
-        xlabel({'Proportion of ','Phase-shifted voxels'})
-
-
-        Vc_Desikan = zeros(1, max(V_Desikan(:)));
-        Vc_3D = Vc_3D(:);
-        for v = 1:max(V_Desikan(:))
-            ind_area = V_Desikan == v;
-            Vc_Desikan(v) = mean(Vc_3D(ind_area) > 0);
-        end
-        [Vc_Desikan_reoder, order_indices] = sort(Vc_Desikan, 'descend');
-        labelDesikan70_reorder = labelDesikan70(order_indices, :);
-
-        figure(Fig3)
-        subplot(1, N_Modes-1, Mode-1)
-        barh(Vc_Desikan_reoder(end:-1:1), 'FaceColor', [0.3 0.3 0.3], 'EdgeColor', 'none')
-        yticks(1:max(V_Desikan(:)))
-        yticklabels(labelDesikan70_reorder(end:-1:1))
-        ax = gca;
-        ax.TickLabelInterpreter = 'none';
-
-        set(gca, 'Fontsize', 8)
-        ylim([0 size(labelDesikan70_reorder, 1)+.5])
-        title(['BraVe Mode ' num2str(Mode)], 'FontSize', 10)
-        set(gcf, 'Position', [620 65 372 982])
-        xlabel({'Proportion of ','Phase-shifted voxels'})
+        % AAL120/Desikan brain-area lists disabled in the capsule - see note
+        % by the Fig2/Fig3 creation above.
+        % Vc_AAL120 = zeros(1, max(V_AAL120(:)));
+        % Vc_3D = Vc_3D(:);
+        % for v = 1:max(V_AAL120(:))
+        %     ind_area = V_AAL120 == v;
+        %     Vc_AAL120(v) = mean(Vc_3D(ind_area) > 0);
+        % end
+        % [Vc_AAL_reoder, order_indices] = sort(Vc_AAL120, 'descend');
+        % label120_reorder = label120(order_indices, :);
+        %
+        % figure(Fig2)
+        % subplot(1,N_Modes-1,Mode-1)
+        % barh(Vc_AAL_reoder(end:-1:1), 'FaceColor', [0.3 0.3 0.3], 'EdgeColor', 'none')
+        % yticks(1:max(V_AAL120(:)))
+        % yticklabels(label120_reorder(end:-1:1, :))
+        %
+        % set(gca, 'Fontsize', 8)
+        % ylim([0 size(Vc_AAL_reoder, 2)+.5])
+        % title(['BraVe Mode ' num2str(Mode)], 'FontSize', 10)
+        % set(gcf, 'Position', [620 65 372 982])
+        % xlabel({'Proportion of ','Phase-shifted voxels'})
+        %
+        %
+        % Vc_Desikan = zeros(1, max(V_Desikan(:)));
+        % Vc_3D = Vc_3D(:);
+        % for v = 1:max(V_Desikan(:))
+        %     ind_area = V_Desikan == v;
+        %     Vc_Desikan(v) = mean(Vc_3D(ind_area) > 0);
+        % end
+        % [Vc_Desikan_reoder, order_indices] = sort(Vc_Desikan, 'descend');
+        % labelDesikan70_reorder = labelDesikan70(order_indices, :);
+        %
+        % figure(Fig3)
+        % subplot(1, N_Modes-1, Mode-1)
+        % barh(Vc_Desikan_reoder(end:-1:1), 'FaceColor', [0.3 0.3 0.3], 'EdgeColor', 'none')
+        % yticks(1:max(V_Desikan(:)))
+        % yticklabels(labelDesikan70_reorder(end:-1:1))
+        % ax = gca;
+        % ax.TickLabelInterpreter = 'none';
+        %
+        % set(gca, 'Fontsize', 8)
+        % ylim([0 size(labelDesikan70_reorder, 1)+.5])
+        % title(['BraVe Mode ' num2str(Mode)], 'FontSize', 10)
+        % set(gcf, 'Position', [620 65 372 982])
+        % xlabel({'Proportion of ','Phase-shifted voxels'})
 
 
 
