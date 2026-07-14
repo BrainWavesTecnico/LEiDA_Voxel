@@ -68,7 +68,12 @@ See the header comments in `run_LEiDA_Voxel.m` for the full function reference, 
 
 [`CodeOcean_Capsule/`](CodeOcean_Capsule/) is a self-contained copy of the pipeline, structured as a standard Code Ocean capsule (`code/`, `data/`, `results/`), starting from already-extracted leading eigenvectors (i.e. skipping step 0/1, which need the raw fMRI NIfTI files). It's independent of the rest of this repository — `code/` already has its own copies of every function file it needs (including `combat/` and `utilities/`), so the folder can be uploaded to Code Ocean as-is.
 
-1. On your own machine, with the full cohort's already-extracted eigenvectors and `Scores_ADNI` table, run [`Select_Demo_Subsample.m`](Select_Demo_Subsample.m) to pick a small, balanced, unique-participant demo subsample (e.g. 30 scans per condition) and save the two demo files.
+1. On your own machine, with the full cohort's already-extracted eigenvectors and `Scores_ADNI` table, run [`Select_Demo_Subsample.m`](Select_Demo_Subsample.m) to pick a small demo subsample (e.g. 30 scans per condition), stratified by sex and age-tertile so the groups are balanced, and save the two demo files. Example output:
+   ```
+   CN:  30 participants selected, age 76.2 +/- 8.7, 15 male / 15 female
+   MCI: 30 participants selected, age 74.8 +/- 8.0, 15 male / 15 female
+   DEM: 30 participants selected, age 73.5 +/- 7.8, 15 male / 15 female
+   ```
 2. Copy those two files into [`CodeOcean_Capsule/data/`](CodeOcean_Capsule/data/) (named to match `file_V1`/`Scores_Table` inside `CodeOcean_Capsule/code/run_LEiDA_Voxel_CodeOcean.m`, or edit those two lines to match your filenames).
 3. Run [`CodeOcean_Capsule/code/run_LEiDA_Voxel_CodeOcean.m`](CodeOcean_Capsule/code/run_LEiDA_Voxel_CodeOcean.m) (it defaults to reading `../data/` and writing `../results/`, matching Code Ocean's convention). It runs Step 2 (cluster K=2:20), Step 2b (occupancies), Step 3a (condition statistics), Step 3b (pyramid-wide score correlations), and Step 4 (all figures, including key-mode selection and the key-modes-vs-scores figure) — Step 1 (eigenvector extraction) is the offline step you did in (1) above, since it needs the raw fMRI data that isn't part of this capsule.
 
