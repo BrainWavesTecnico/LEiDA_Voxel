@@ -40,13 +40,13 @@ file_V1_full    = 'LEiDA_V1_all_MNI10mm_FullMask_2177scans.mat';
 Scores_Table_full = fullfile(full_data_dir, 'Scores_ADNI_2177scans.mat');
 
 ID_column   = 'RID';   % CHANGE to your table's unique-participant column, e.g. 'RID' or 'PTID'
-n_per_condition = 30;  % scans per condition in the demo (30+30+30 = 90 total)
+n_per_condition = 60;  % scans per condition in the demo (60+60+60 = 180 total)
 n_age_bins  = 3;       % age tertiles (young/mid/old) to stratify by, within each condition
 rng_seed = 42;          % fixed seed for reproducibility
 
 out_dir  = 'CodeOcean_Capsule/data/';            % local output folder for the capsule
-file_V1_demo      = 'LEiDA_V1_all_MNI10mm_s90demo.mat';
-Scores_Table_demo = 'Scores_ADNI_s90demo.mat';
+file_V1_demo      = 'LEiDA_V1_all_MNI10mm_s180demo.mat';
+Scores_Table_demo = 'Scores_ADNI_s180demo.mat';
 
 %% Load full data
 load(fullfile(full_data_dir, file_V1_full), ...
