@@ -1,8 +1,10 @@
 % Select_Demo_Subsample.m
 %
-% One-off, local data-prep script: selects a small, balanced demo subsample
-% (unique participants, equal N per condition) from your full leading
-% eigenvectors + Scores_ADNI table, and saves the two files
+% One-off, local data-prep script: selects a small demo subsample of scans,
+% balanced by condition and, within each condition, stratified by sex and
+% age-tertile (so age and sex distributions are matched as closely as
+% possible across conditions) - one scan per unique participant. Reads your
+% full leading eigenvectors + Scores_ADNI table, and saves the two files
 % CodeOcean_Capsule/code/run_LEiDA_Voxel_CodeOcean.m expects in
 % CodeOcean_Capsule/data/.
 %
@@ -10,6 +12,13 @@
 % against your full dataset, to produce the small demo files you upload to
 % the capsule. It never touches raw fMRI data, only the already-extracted
 % leading eigenvectors (output of Get_EigenVectors_VoxelSpace_Server.m).
+%
+% Scores_ADNI IS reduced to just the selected scans (not kept at full size
+% and indexed at runtime): the rest of the pipeline assumes Scores_ADNI has
+% exactly one row per scan, in the same order as data_info/Scan_num, so a
+% full-size table would misalign against the demo eigenvector file. Reducing
+% it also avoids shipping clinical/genetic data for participants who aren't
+% actually part of the demo.
 %
 % ASSUMPTIONS (adjust the USER INPUT section below to match your data):
 %   - Scores_ADNI has one row per scan, in the same order as data_info /
@@ -20,6 +29,8 @@
 %   - Scores_ADNI.DX_num encodes condition as 0/1/2 (CN/MCI/DEM), as used
 %     elsewhere in this pipeline (e.g. run_LEiDA_Voxel.m: Index_Conditions
 %     = Scores_ADNI.DX_num + 1).
+%   - Scores_ADNI.AGE_AT_SCAN and Scores_ADNI.PTGENDER ('Male'/'Female')
+%     exist, as used elsewhere in this pipeline (e.g. Save_Occupancies_Harmonize.m).
 %
 % Author: Joana Cabral, University of Lisbon, joanabcabral@tecnico.ulisboa.pt
 
@@ -30,6 +41,7 @@ Scores_Table_full = fullfile(full_data_dir, 'Scores_ADNI_2177scans.mat');
 
 ID_column   = 'RID';   % CHANGE to your table's unique-participant column, e.g. 'RID' or 'PTID'
 n_per_condition = 30;  % scans per condition in the demo (30+30+30 = 90 total)
+n_age_bins  = 3;       % age tertiles (young/mid/old) to stratify by, within each condition
 rng_seed = 42;          % fixed seed for reproducibility
 
 out_dir  = 'CodeOcean_Capsule/data/';            % local output folder for the capsule
@@ -45,29 +57,78 @@ n_scans_full = length(data_info);
 assert(height(Scores_ADNI) == n_scans_full, ...
     'Scores_ADNI must have exactly one row per scan (same order as data_info).');
 
-%% Select n_per_condition unique-participant scans per condition
+%% Select n_per_condition unique-participant scans per condition,
+%  stratified by sex x age-tertile so age/sex are balanced across conditions
 rng(rng_seed);
 Index_Conditions = Scores_ADNI.DX_num + 1;   % 1=CN, 2=MCI, 3=DEM (matches run_LEiDA_Voxel.m)
 Condition_values = sort(unique(Index_Conditions));
 
+Age = Scores_ADNI.AGE_AT_SCAN;
+Sex = string(Scores_ADNI.PTGENDER);
+Sex_values = unique(Sex(~ismissing(Sex)));
+
+valid_demo = ~isnan(Age) & ~ismissing(Sex);
+if any(~valid_demo)
+    fprintf('Excluding %d scan(s) with missing age/sex from eligibility.\n', sum(~valid_demo));
+end
+
+% Age-tertile edges from the full (valid) cohort, so bin edges are the same
+% across conditions - that's what makes the strata comparable between groups.
+age_edges = quantile(Age(valid_demo), linspace(0, 1, n_age_bins + 1));
+age_edges([1 end]) = [-Inf, Inf];
+Age_bin = discretize(Age, age_edges);
+
+n_strata = numel(Sex_values) * n_age_bins;
+base_per_stratum = floor(n_per_condition / n_strata);
+remainder = n_per_condition - base_per_stratum * n_strata;
+
 selected_scans = [];
 for cnd = 1:length(Condition_values)
-    cond_scan_idx = find(Index_Conditions == Condition_values(cnd));
+    cond_scan_idx = find(Index_Conditions == Condition_values(cnd) & valid_demo);
     cond_ids = Scores_ADNI.(ID_column)(cond_scan_idx);
+    [~, first_occurrence] = unique(cond_ids, 'stable');
+    cond_scan_idx = cond_scan_idx(first_occurrence);   % one scan per participant, this condition
 
-    [unique_ids, first_occurrence] = unique(cond_ids, 'stable');
-    n_available = numel(unique_ids);
-    if n_available < n_per_condition
-        error(['Only %d unique participants available for condition %d, ' ...
-               'need %d. Lower n_per_condition or check ID_column.'], ...
-               n_available, Condition_values(cnd), n_per_condition);
+    cond_selected = [];
+    strat_i = 0;
+    for si = 1:numel(Sex_values)
+        for ai = 1:n_age_bins
+            strat_i = strat_i + 1;
+            target_n = base_per_stratum + (strat_i <= remainder);   % spread the remainder over the first strata
+            in_stratum = cond_scan_idx(Sex(cond_scan_idx) == Sex_values(si) & Age_bin(cond_scan_idx) == ai);
+            n_take = min(target_n, numel(in_stratum));
+            if n_take > 0
+                pick = in_stratum(randperm(numel(in_stratum), n_take));
+                cond_selected = [cond_selected; pick]; %#ok<AGROW>
+            end
+        end
     end
 
-    pick = randperm(n_available, n_per_condition);
-    selected_scans = [selected_scans; cond_scan_idx(first_occurrence(pick))]; %#ok<AGROW>
+    % Backfill from the remaining eligible participants in this condition if
+    % some strata didn't have enough people (relaxes strict age/sex matching
+    % only for the shortfall, so the total N per condition is always met).
+    shortfall = n_per_condition - numel(cond_selected);
+    if shortfall > 0
+        remaining_pool = setdiff(cond_scan_idx, cond_selected);
+        if numel(remaining_pool) < shortfall
+            error(['Only %d eligible participants available for condition %d, ' ...
+                   'need %d. Lower n_per_condition, n_age_bins, or check ID_column.'], ...
+                   numel(cond_scan_idx), Condition_values(cnd), n_per_condition);
+        end
+        backfill = remaining_pool(randperm(numel(remaining_pool), shortfall));
+        cond_selected = [cond_selected; backfill];
+        warning('Select_Demo_Subsample:strataShortfall', ...
+            '%s: %d participant(s) backfilled outside strict age/sex stratification (some strata had too few eligible participants).', ...
+            Scores_ADNI.DX{cond_scan_idx(1)}, shortfall);
+    end
 
-    disp([Scores_ADNI.DX{cond_scan_idx(first_occurrence(pick(1)))} ...
-          ': selected ' num2str(n_per_condition) ' of ' num2str(n_available) ' unique participants']);
+    selected_scans = [selected_scans; cond_selected]; %#ok<AGROW>
+
+    sel_age = Age(cond_selected);
+    sel_sex = Sex(cond_selected);
+    fprintf('%s: %d participants selected, age %.1f +/- %.1f, %d male / %d female\n', ...
+        Scores_ADNI.DX{cond_scan_idx(1)}, numel(cond_selected), mean(sel_age), std(sel_age), ...
+        sum(sel_sex == "Male"), sum(sel_sex == "Female"));
 end
 
 selected_scans = sort(selected_scans);
