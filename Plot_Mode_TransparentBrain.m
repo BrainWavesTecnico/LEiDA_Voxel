@@ -58,12 +58,11 @@ Mask_Brain = imresize3(Mask_Brain, size_MNI, 'Method', 'linear');
 
 %% Loop over each Mode
 
-figure(1)
-set(gcf,'Position', [521         229        1220         699])
-figure(2)
-set(gcf,'Position', [ 423     2   801   998])
-figure(3)
-set(gcf,'Position', [ 423     2   801   998])
+% Use figure handles (not hardcoded numbers) so this always opens new
+% figures, even if earlier plotting steps already created Figure 1/2/3.
+Fig1 = figure('Position', [521         229        1220         699]);
+Fig2 = figure('Position', [ 423     2   801   998]);
+Fig3 = figure('Position', [ 423     2   801   998]);
   
 
 for Mode = 1:N_Modes
@@ -91,7 +90,7 @@ for Mode = 1:N_Modes
     Vc_3D = smooth3(Vc_3D, 'gaussian', 3, 0.8);
 
     %%%% Left - Render Mode as 3D Red Patch on Transparent Brain
-    figure(1)
+    figure(Fig1)
     subplot_tight(N_Modes, 6, 1 +(Mode-1)*6, 0.02)
     hold on
     % Plot a transparent brain patch.
@@ -196,7 +195,7 @@ for Mode = 1:N_Modes
         [Vc_AAL_reoder, order_indices] = sort(Vc_AAL120, 'descend');
         label120_reorder = label120(order_indices, :);
 
-        figure(2)
+        figure(Fig2)
         subplot(1,N_Modes-1,Mode-1)
         barh(Vc_AAL_reoder(end:-1:1), 'FaceColor', [0.3 0.3 0.3], 'EdgeColor', 'none')
         yticks(1:max(V_AAL120(:)))
@@ -218,7 +217,7 @@ for Mode = 1:N_Modes
         [Vc_Desikan_reoder, order_indices] = sort(Vc_Desikan, 'descend');
         labelDesikan70_reorder = labelDesikan70(order_indices, :);
 
-        figure(3)
+        figure(Fig3)
         subplot(1, N_Modes-1, Mode-1)
         barh(Vc_Desikan_reoder(end:-1:1), 'FaceColor', [0.3 0.3 0.3], 'EdgeColor', 'none')
         yticks(1:max(V_Desikan(:)))
