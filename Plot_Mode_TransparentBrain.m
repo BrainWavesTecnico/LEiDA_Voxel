@@ -60,9 +60,11 @@ Mask_Brain = imresize3(Mask_Brain, size_MNI, 'Method', 'linear');
 
 % Use figure handles (not hardcoded numbers) so this always opens new
 % figures, even if earlier plotting steps already created Figure 1/2/3.
-Fig1 = figure('Position', [521         229        1220         699]);
-Fig2 = figure('Position', [ 423     2   801   998]);
-Fig3 = figure('Position', [ 423     2   801   998]);
+Fig1 = figure('Position', [521         229        1220         699], 'Name', 'Key modes - 3D renders and RSN overlap');
+Fig2 = figure('Position', [ 423     2   801   998], 'Name', 'Key modes - AAL120 atlas');
+sgtitle(Fig2, 'Brain areas involved in each key mode (AAL120 atlas)');
+Fig3 = figure('Position', [ 423     2   801   998], 'Name', 'Key modes - Desikan-Killiany atlas');
+sgtitle(Fig3, 'Brain areas involved in each key mode (Desikan-Killiany atlas)');
   
 
 for Mode = 1:N_Modes
