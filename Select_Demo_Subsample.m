@@ -45,8 +45,8 @@ n_age_bins  = 3;       % age tertiles (young/mid/old) to stratify by, within eac
 rng_seed = 42;          % fixed seed for reproducibility
 
 out_dir  = 'CodeOcean_Capsule/data/';            % local output folder for the capsule
-file_V1_demo      = 'LEiDA_V1_all_MNI10mm_demo.mat';
-Scores_Table_demo = 'Scores_ADNI_demo.mat';
+file_V1_demo      = 'LEiDA_V1_all_MNI10mm_s90demo.mat';
+Scores_Table_demo = 'Scores_ADNI_s90demo.mat';
 
 %% Load full data
 load(fullfile(full_data_dir, file_V1_full), ...
