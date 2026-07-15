@@ -73,7 +73,7 @@ xlim_range = [-1 1] * (max_abs_rho + 0.02);
 alpha_mode   = 0.05 / N_Modes;
 alpha_strict = 0.05 / N_Modes / length(Selected_scores);
 
-figure('Color','w')
+Fig = figure('Color','w');
 
 for Mode=1:N_Modes
 
@@ -106,6 +106,10 @@ for Mode=1:N_Modes
         set(gca,'YTick',[],'FontSize',8)
     end
 end
+
+saveas(Fig, fullfile(results_dir, 'Fig_KeyModes_vs_Scores.png'), 'png');
+saveas(Fig, fullfile(results_dir, 'Fig_KeyModes_vs_Scores.fig'), 'fig');
+disp('- Plot successfully saved as Fig_KeyModes_vs_Scores');
 
 %% CREATE CSV table
 % Assumes: Rho(mode, variable, 1) = r, Rho(mode, variable, 2) = p-value
