@@ -13,8 +13,10 @@ function [stats] = bootstrap_within_permutation_paired_samples(data,design,niter
 %         value in a network, etc. NaN values will be ignored.
 % design  a row vector containing the numbers 1 and 2 for the two groups
 % niter   number of permutations (recommended 5000)
-% htest   hypothesis test used to compare populations. The script is
-%         prepared to run the ttest2, kstest2, and ranksum tests. 
+% nboot   number of bootstrap samples per permutation, used to estimate the
+%         standard error of the permuted mean difference
+% pthr    significance threshold passed to MATLAB's paired ttest (used only
+%         for its internal alpha-dependent outputs; does not affect pvals)
 %
 %
 % OUTPUT:
@@ -87,7 +89,7 @@ pvals = zeros(NC,2);
 
 for n=1:NC
     if sum(abs(data(n,g1)))>0 || sum(abs(data(n,g2)))>0  % Exclude tests where all (tstat=NaN) or most of the population (median=0) as a null value.
-        pvals(n,:) = tt_np_pval(data(n,:),g1,g2,niter,nboot,tvals(n),htest);
+        pvals(n,:) = tt_np_pval(data(n,:),g1,g2,niter,nboot,tvals(n));
      else
         disp('Data with lots of zeros!');
         pvals(n,:) = [NaN NaN];

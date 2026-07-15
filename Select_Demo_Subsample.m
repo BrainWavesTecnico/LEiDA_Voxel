@@ -40,13 +40,13 @@ file_V1_full    = 'LEiDA_V1_all_MNI10mm_FullMask_2177scans.mat';
 Scores_Table_full = fullfile(full_data_dir, 'Scores_ADNI_2177scans.mat');
 
 ID_column   = 'RID';   % CHANGE to your table's unique-participant column, e.g. 'RID' or 'PTID'
-n_per_condition = 30;  % scans per condition in the demo (30+30+30 = 90 total)
+n_per_condition = 60;  % scans per condition in the demo (60+60+60 = 180 total)
 n_age_bins  = 3;       % age tertiles (young/mid/old) to stratify by, within each condition
 rng_seed = 42;          % fixed seed for reproducibility
 
 out_dir  = 'CodeOcean_Capsule/data/';            % local output folder for the capsule
-file_V1_demo      = 'LEiDA_V1_all_MNI10mm_s90demo.mat';
-Scores_Table_demo = 'Scores_ADNI_s90demo.mat';
+file_V1_demo      = 'LEiDA_V1_all_MNI10mm_s180demo.mat';
+Scores_Table_demo = 'Scores_ADNI_s180demo.mat';
 
 %% Load full data
 load(fullfile(full_data_dir, file_V1_full), ...
@@ -142,13 +142,37 @@ data_info   = data_info(selected_scans);
 Scan_length = Scan_length(selected_scans);
 
 %% Subset V1_all / Scan_num (row-per-TR), remapping scan numbers to 1:n_scans_demo
-keep_TR = ismember(Scan_num, selected_scans);
+% selected_scans holds ROW POSITIONS into data_info/Scores_ADNI (1:n_scans_full).
+% Scan_num's actual values are whatever scan identifiers were assigned when
+% the eigenvector file was built - they only equal the row position directly
+% if Scan_num was generated as a simple 1:n_scans_full sequence in data_info's
+% order. Map row positions to the real Scan_num values explicitly instead of
+% assuming they're the same, so this doesn't silently select the wrong (or
+% far too few) timepoints if that assumption doesn't hold.
+scan_ids_by_row = unique(Scan_num, 'stable');
+assert(numel(scan_ids_by_row) == n_scans_full, ...
+    ['unique(Scan_num) has %d distinct values but data_info has %d rows - ' ...
+     'Scan_num must have exactly one id per scan, in the same order as data_info.'], ...
+    numel(scan_ids_by_row), n_scans_full);
+selected_scan_ids = scan_ids_by_row(selected_scans);
+
+keep_TR = ismember(Scan_num, selected_scan_ids);
 V1_all_demo  = V1_all(keep_TR, :);
 Scan_num_old = Scan_num(keep_TR);
 
+n_TR_demo = sum(keep_TR);
+fprintf('Selected %d timepoints total for %d scans (%.1f timepoints/scan on average).\n', ...
+    n_TR_demo, n_scans_demo, n_TR_demo / n_scans_demo);
+if n_TR_demo < 10 * n_scans_demo
+    warning('Select_Demo_Subsample:tooFewTimepoints', ...
+        ['Only %d timepoints selected for %d scans - that''s far fewer than expected. ' ...
+         'Check that Scan_num truly has one id per row of data_info, in order.'], ...
+        n_TR_demo, n_scans_demo);
+end
+
 Scan_num_demo = zeros(size(Scan_num_old));
 for new_id = 1:n_scans_demo
-    Scan_num_demo(Scan_num_old == selected_scans(new_id)) = new_id;
+    Scan_num_demo(Scan_num_old == selected_scan_ids(new_id)) = new_id;
 end
 
 V1_all = V1_all_demo;

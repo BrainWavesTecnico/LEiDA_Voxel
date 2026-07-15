@@ -15,10 +15,10 @@
 % beforehand; this script only reads its output.
 %
 % Expected files in data_dir (rename file_V1/Scores_Table below to match):
-%   'LEiDA_V1_all_MNI10mm_s90demo.mat' - eigenvectors, as saved by
+%   'LEiDA_V1_all_MNI10mm_s180demo.mat' - eigenvectors, as saved by
 %       Get_EigenVectors_VoxelSpace_Server.m: V1_all, ind_voxels,
 %       MNI_lowres_Mask, data_info, Scan_num, Scan_length.
-%   'Scores_ADNI_s90demo.mat' - table Scores_ADNI with SITE, AGE_AT_SCAN,
+%   'Scores_ADNI_s180demo.mat' - table Scores_ADNI with SITE, AGE_AT_SCAN,
 %       PTGENDER, PTEDUCAT, DX_num, DX columns (plus the score columns used
 %       by Scores_vs_Mode_Occupancy.m), subsetted to the same scans as file_V1.
 %
@@ -39,8 +39,8 @@ addpath(genpath(fileparts(mfilename('fullpath'))));
 % small demo subsample from an existing full-cohort eigenvector file), then
 % place the resulting eigenvector file and a matching Scores_ADNI table in
 % data_dir - edit the two filenames below to match what you name them.
-file_V1      = 'LEiDA_V1_all_MNI10mm_s90demo.mat';
-Scores_Table = fullfile(data_dir, 'Scores_ADNI_s90demo.mat');
+file_V1      = 'LEiDA_V1_all_MNI10mm_s180demo.mat';
+Scores_Table = fullfile(data_dir, 'Scores_ADNI_s180demo.mat');
 
 cluster_file = 'LEiDA_Clusters_VoxelMNI10mm_demo.mat';
 occup_file   = 'LEiDA_Occupancies_demo.mat';
@@ -108,9 +108,10 @@ if isempty(Key_Modes_KC)
     % (ki is the POSITION in rangeK, not the literal number of clusters).
     warning('run_LEiDA_Voxel_CodeOcean:noSignificantModes', ...
         ['No mode survived the significance threshold on this demo subsample; ' ...
-         'falling back to a fixed selection of modes for illustration.']);
-    ki_demo = min(4, length(rangeK));
-    n_demo = min(3, rangeK(ki_demo));
+         'falling back to showing the full repertoire of modes for illustration.']);
+    target_K = 4;   % literal number of clusters to show (not a position in rangeK)
+    [~, ki_demo] = min(abs(rangeK - target_K));   % position in rangeK closest to target_K
+    n_demo = rangeK(ki_demo);   % show every mode at this K, not just a subset
     Key_Modes_KC = zeros(n_demo, 3);
     for m = 1:n_demo
         mean_P_cond = zeros(1, length(Condition_tags));

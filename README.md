@@ -68,7 +68,7 @@ See the header comments in `run_LEiDA_Voxel.m` for the full function reference, 
 
 [`CodeOcean_Capsule/`](CodeOcean_Capsule/) is a self-contained copy of the pipeline, structured as a standard Code Ocean capsule (`code/`, `data/`, `results/`), starting from already-extracted leading eigenvectors (i.e. skipping step 0/1, which need the raw fMRI NIfTI files). It's independent of the rest of this repository — `code/` already has its own copies of every function file it needs (including `combat/` and `utilities/`), so the folder can be uploaded to Code Ocean as-is.
 
-1. On your own machine, with the full cohort's already-extracted eigenvectors and `Scores_ADNI` table, run [`Select_Demo_Subsample.m`](Select_Demo_Subsample.m) to pick a small demo subsample (e.g. 30 scans per condition), stratified by sex and age-tertile so the groups are balanced, and save the two demo files. Example output:
+1. On your own machine, with the full cohort's already-extracted eigenvectors and `Scores_ADNI` table, run [`Select_Demo_Subsample.m`](Select_Demo_Subsample.m) to pick a small demo subsample (`n_per_condition`, 60 scans per condition by default), stratified by sex and age-tertile so the groups are balanced, and save the two demo files. Example output (from an earlier run with `n_per_condition = 30`; the printed report scales with whatever `n_per_condition` you use):
    ```
    CN:  30 participants selected, age 76.2 +/- 8.7, 15 male / 15 female
    MCI: 30 participants selected, age 74.8 +/- 8.0, 15 male / 15 female

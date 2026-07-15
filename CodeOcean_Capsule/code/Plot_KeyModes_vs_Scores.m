@@ -51,32 +51,50 @@ Age=Scores_ADNI.AGE_AT_SCAN;
 
 Rho=(zeros(N_Modes,length(Selected_scores),2));
 
-figure('Color','w')
+% Compute correlations for every mode/score up front, so the shared x-axis
+% range below can be based on the true maximum across the whole figure.
+for Score=1:length(Selected_scores)
+    disp(Scores_ADNI.Properties.VariableNames{Selected_scores(Score)})
+
+    col = Scores_ADNI{:, Selected_scores(Score)};
+    valid_values = find(~isnan(col));
+    n_valid_per_score(Score)=numel(valid_values);
+
+    for Mode=1:N_Modes
+        [Rho(Mode,Score,1), Rho(Mode,Score,2)] = partialcorr(col(valid_values), P_Mode(Mode,valid_values)', Age(valid_values), 'rows', 'complete');
+    end
+end
+
+% Shared x-axis range (same scale in every subplot) based on the largest
+% absolute correlation found anywhere in the figure, with a small margin.
+max_abs_rho = max(abs(Rho(:,:,1)), [], 'all');
+xlim_range = [-1 1] * (max_abs_rho + 0.02);
+
+alpha_mode   = 0.05 / N_Modes;
+alpha_strict = 0.05 / N_Modes / length(Selected_scores);
+
+Fig = figure('Color','w');
 
 for Mode=1:N_Modes
-    for Score=1:length(Selected_scores)
-
-        if Mode==1
-
-        disp(Scores_ADNI.Properties.VariableNames{Selected_scores(Score)})
-        end
-
-        col = Scores_ADNI{:, Selected_scores(Score)};
-        valid_values = find(~isnan(col));
-        n_valid_per_score(Score)=numel(valid_values);
-
-        [Rho(Mode,Score,1), Rho(Mode,Score,2)] = partialcorr(col(valid_values), P_Mode(Mode,valid_values)', Age(valid_values), 'rows', 'complete');
-
-    end
 
     subplot_tight(1,N_Modes+1,1+Mode,0.05)
 
-    barh(Rho(Mode,:,1),'FaceColor',[0.84 .84 .84],'EdgeColor','none','BarWidth',.3)
+    % Color each bar by significance level within a SINGLE barh() call, so
+    % every bar has the same width. Overlaying separate barh() calls on
+    % sparse/uneven subsets of categories (as before) makes barh compute
+    % 'BarWidth' relative to each call's own (uneven) category spacing,
+    % which is why the highlighted bars were rendering thicker than the rest.
+    bar_colors = repmat([0.84 0.84 0.84], length(Selected_scores), 1);
+    sig_mode   = Rho(Mode,:,2) < alpha_mode;
+    sig_strict = Rho(Mode,:,2) < alpha_strict;
+    bar_colors(sig_mode,:)   = repmat([0.6 0.6 0.6], sum(sig_mode), 1);
+    bar_colors(sig_strict,:) = repmat(Mode_colors(Mode,:), sum(sig_strict), 1);
+
+    b = barh(Rho(Mode,:,1), 'FaceColor', 'flat', 'EdgeColor', 'none', 'BarWidth', .3);
+    b.CData = bar_colors;
+
     title(['Mode ' num2str(Mode)])
-    hold on
-    barh(find(Rho(Mode,:,2)<0.05/N_Modes),Rho(Mode,(Rho(Mode,:,2)<0.05/N_Modes),1),'FaceColor',[0.6 .6 .6],'EdgeColor','none','BarWidth',.3)
-    barh(find(Rho(Mode,:,2)<0.05/N_Modes/length(Selected_scores)),Rho(Mode,(Rho(Mode,:,2)<0.05/N_Modes/length(Selected_scores)),1),'FaceColor',Mode_colors(Mode,:),'EdgeColor','none','BarWidth',.3)
-    xlim([-0.25 0.25])
+    xlim(xlim_range)
 
     box off
 
@@ -88,6 +106,10 @@ for Mode=1:N_Modes
         set(gca,'YTick',[],'FontSize',8)
     end
 end
+
+saveas(Fig, fullfile(results_dir, 'Fig_KeyModes_vs_Scores.png'), 'png');
+saveas(Fig, fullfile(results_dir, 'Fig_KeyModes_vs_Scores.fig'), 'fig');
+disp('- Plot successfully saved as Fig_KeyModes_vs_Scores');
 
 %% CREATE CSV table
 % Assumes: Rho(mode, variable, 1) = r, Rho(mode, variable, 2) = p-value

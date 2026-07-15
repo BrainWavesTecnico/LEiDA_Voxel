@@ -58,12 +58,13 @@ Mask_Brain = imresize3(Mask_Brain, size_MNI, 'Method', 'linear');
 
 %% Loop over each Mode
 
-figure(1)
-set(gcf,'Position', [521         229        1220         699])
-figure(2)
-set(gcf,'Position', [ 423     2   801   998])
-figure(3)
-set(gcf,'Position', [ 423     2   801   998])
+% Use figure handles (not hardcoded numbers) so this always opens new
+% figures, even if earlier plotting steps already created Figure 1/2/3.
+Fig1 = figure('Position', [521         229        1220         699], 'Name', 'Key modes - 3D renders and RSN overlap');
+Fig2 = figure('Position', [ 423     2   801   998], 'Name', 'Key modes - AAL120 atlas');
+sgtitle(Fig2, 'Brain areas involved in each key mode (AAL120 atlas)');
+Fig3 = figure('Position', [ 423     2   801   998], 'Name', 'Key modes - Desikan-Killiany atlas');
+sgtitle(Fig3, 'Brain areas involved in each key mode (Desikan-Killiany atlas)');
   
 
 for Mode = 1:N_Modes
@@ -91,7 +92,7 @@ for Mode = 1:N_Modes
     Vc_3D = smooth3(Vc_3D, 'gaussian', 3, 0.8);
 
     %%%% Left - Render Mode as 3D Red Patch on Transparent Brain
-    figure(1)
+    figure(Fig1)
     subplot_tight(N_Modes, 6, 1 +(Mode-1)*6, 0.02)
     hold on
     % Plot a transparent brain patch.
@@ -196,7 +197,7 @@ for Mode = 1:N_Modes
         [Vc_AAL_reoder, order_indices] = sort(Vc_AAL120, 'descend');
         label120_reorder = label120(order_indices, :);
 
-        figure(2)
+        figure(Fig2)
         subplot(1,N_Modes-1,Mode-1)
         barh(Vc_AAL_reoder(end:-1:1), 'FaceColor', [0.3 0.3 0.3], 'EdgeColor', 'none')
         yticks(1:max(V_AAL120(:)))
@@ -218,7 +219,7 @@ for Mode = 1:N_Modes
         [Vc_Desikan_reoder, order_indices] = sort(Vc_Desikan, 'descend');
         labelDesikan70_reorder = labelDesikan70(order_indices, :);
 
-        figure(3)
+        figure(Fig3)
         subplot(1, N_Modes-1, Mode-1)
         barh(Vc_Desikan_reoder(end:-1:1), 'FaceColor', [0.3 0.3 0.3], 'EdgeColor', 'none')
         yticks(1:max(V_Desikan(:)))
@@ -240,25 +241,15 @@ for Mode = 1:N_Modes
 
 end
 
-%%
+%% Save the figures.
+saveas(Fig1, fullfile(results_dir, 'Fig3_KeyModes_TransparentBrain.png'), 'png');
+saveas(Fig1, fullfile(results_dir, 'Fig3_KeyModes_TransparentBrain.fig'), 'fig');
 
-% % Save the figures.
-% figure(1)
-% saveas(gcf, [results_dir 'ModeTranspOverlap' '_K' num2str(k) '_c' num2str(c)], 'fig');
-% saveas(gcf, [results_dir '_Fig3_ModeTranspOverlap_K' num2str(k) '_c' num2str(c)], 'png');
-% 
-% figure(2)
-% saveas(gcf, [results_dir 'ListAreas_Key_Modes_AAL2'], 'fig')
-% 
-% figure(3)
-% saveas(gcf, [results_dir 'ListAreas_Key_Modes_Desikan'], 'fig')
-% 
-% %% Plot list of the brain areas located on dephased poles (using AAL2 atlas)
-% 
-% 
-% %% Save the Figure
-% % Save the figure as both PNG and MATLAB FIG file.
-% saveas(gcf, [results_dir '_List_Brain_areas_K' num2str(k) '_c' num2str(c) '.png'], 'png');
-% saveas(gcf, [results_dir 'List_Brain_areas_K' num2str(k) '_c' num2str(c) '.fig'], 'fig');
-% disp('- Plot successfully saved as List_Brain_areas');
-% disp(' ');
+saveas(Fig2, fullfile(results_dir, 'KeyModes_ListAreas_AAL120.png'), 'png');
+saveas(Fig2, fullfile(results_dir, 'KeyModes_ListAreas_AAL120.fig'), 'fig');
+
+saveas(Fig3, fullfile(results_dir, 'KeyModes_ListAreas_Desikan.png'), 'png');
+saveas(Fig3, fullfile(results_dir, 'KeyModes_ListAreas_Desikan.fig'), 'fig');
+
+disp('- Plot successfully saved as Fig3_KeyModes_TransparentBrain, KeyModes_ListAreas_AAL120, KeyModes_ListAreas_Desikan');
+disp(' ');

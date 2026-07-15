@@ -40,6 +40,18 @@ P_pval_sig_sum=squeeze(sum(P_pval< (0.05 / sum(rangeK)/ 3/2) & P_pval>0 & effect
 
 Signif_Modes_KC=[K, c];
 
+if isempty(Signif_Modes_KC)
+    % No mode reached the significance threshold (common with a small demo
+    % sample) - the column-padding/grouping logic below assumes at least
+    % one row, so bail out here instead of crashing. Callers (e.g.
+    % run_LEiDA_Voxel_CodeOcean.m) already handle an empty Key_Modes_KC.
+    warning('Choose_Relevant_Modes:noSignificantModes', ...
+        'No mode reached the significance threshold; returning empty Key_Modes_KC.');
+    Key_Modes_KC = [];
+    Key_Centroids = [];
+    return
+end
+
 cortex_dir='SideView';
 
 % Load clustering centroids from the clusters file.
