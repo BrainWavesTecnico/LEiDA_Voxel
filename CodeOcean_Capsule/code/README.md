@@ -16,9 +16,9 @@ Running the full manuscript analysis requires the complete ADNI cohort
 fMRI data, restricted-access). To let this capsule run end-to-end without
 that dependency, it instead ships with a **reduced, balanced demo sample of
 300 scans**, drawn from the full cohort with
-[`Select_Demo_Subsample.m`](../../Select_Demo_Subsample.m) — 100 unique
-participants per diagnostic group, stratified by sex and age-tertile so the
-groups are closely matched:
+[`Select_Demo_Subsample.m`](https://github.com/BrainWavesTecnico/LEiDA_Voxel/blob/main/Select_Demo_Subsample.m)
+— 100 unique participants per diagnostic group, stratified by sex and
+age-tertile so the groups are closely matched:
 
 ```
 CN:  100 participants selected, age 74.5 +/- 7.0, 50 male / 50 female
@@ -32,8 +32,9 @@ Results from this reduced sample are for **illustrating the pipeline**, not
 for reproducing the manuscript's reported effect sizes or significance
 levels — those require the full cohort. See
 [`../data/README.md`](../data/README.md) for the expected input file names,
-and the main repository [`README.md`](../../README.md) for how the demo
-sample was built and the full pipeline it's part of.
+and the main repository on GitHub,
+[BrainWavesTecnico/LEiDA_Voxel](https://github.com/BrainWavesTecnico/LEiDA_Voxel),
+for how the demo sample was built and the full pipeline it's part of.
 
 ## Entry point
 
@@ -62,8 +63,9 @@ leading eigenvectors through to the final figures:
 
 Step 1 (`Get_EigenVectors_VoxelSpace_Server.m`, which reads raw fMRI NIfTI
 files) is **not** part of this capsule and is not run here — it needs the
-full-size raw data. Run it offline beforehand (see the main repo
-[`README.md`](../../README.md)), or use [`../../Select_Demo_Subsample.m`](../../Select_Demo_Subsample.m)
+full-size raw data. Run it offline beforehand (see the main repo on GitHub,
+[BrainWavesTecnico/LEiDA_Voxel](https://github.com/BrainWavesTecnico/LEiDA_Voxel)),
+or use [`Select_Demo_Subsample.m`](https://github.com/BrainWavesTecnico/LEiDA_Voxel/blob/main/Select_Demo_Subsample.m)
 to build a demo subsample from an existing full-cohort eigenvector file.
 
 ## Dependencies (bundled)
@@ -82,7 +84,8 @@ folder can be uploaded to Code Ocean as-is.
 ## Capsule-specific differences from the main repo copies
 
 A few files here are intentionally simplified for the capsule, compared to
-their counterparts one level up in the main repository:
+their counterparts in the main repository on GitHub,
+[BrainWavesTecnico/LEiDA_Voxel](https://github.com/BrainWavesTecnico/LEiDA_Voxel):
 
 - **`Plot_Mode_TransparentBrain.m`**: the AAL120/Desikan brain-area-list
   figures (`Fig2`/`Fig3`) are commented out, to keep the demo run's figure
