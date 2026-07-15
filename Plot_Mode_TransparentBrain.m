@@ -241,25 +241,15 @@ for Mode = 1:N_Modes
 
 end
 
-%%
+%% Save the figures.
+saveas(Fig1, fullfile(results_dir, 'Fig3_KeyModes_TransparentBrain.png'), 'png');
+saveas(Fig1, fullfile(results_dir, 'Fig3_KeyModes_TransparentBrain.fig'), 'fig');
 
-% % Save the figures.
-% figure(1)
-% saveas(gcf, [results_dir 'ModeTranspOverlap' '_K' num2str(k) '_c' num2str(c)], 'fig');
-% saveas(gcf, [results_dir '_Fig3_ModeTranspOverlap_K' num2str(k) '_c' num2str(c)], 'png');
-% 
-% figure(2)
-% saveas(gcf, [results_dir 'ListAreas_Key_Modes_AAL2'], 'fig')
-% 
-% figure(3)
-% saveas(gcf, [results_dir 'ListAreas_Key_Modes_Desikan'], 'fig')
-% 
-% %% Plot list of the brain areas located on dephased poles (using AAL2 atlas)
-% 
-% 
-% %% Save the Figure
-% % Save the figure as both PNG and MATLAB FIG file.
-% saveas(gcf, [results_dir '_List_Brain_areas_K' num2str(k) '_c' num2str(c) '.png'], 'png');
-% saveas(gcf, [results_dir 'List_Brain_areas_K' num2str(k) '_c' num2str(c) '.fig'], 'fig');
-% disp('- Plot successfully saved as List_Brain_areas');
-% disp(' ');
+saveas(Fig2, fullfile(results_dir, 'KeyModes_ListAreas_AAL120.png'), 'png');
+saveas(Fig2, fullfile(results_dir, 'KeyModes_ListAreas_AAL120.fig'), 'fig');
+
+saveas(Fig3, fullfile(results_dir, 'KeyModes_ListAreas_Desikan.png'), 'png');
+saveas(Fig3, fullfile(results_dir, 'KeyModes_ListAreas_Desikan.fig'), 'fig');
+
+disp('- Plot successfully saved as Fig3_KeyModes_TransparentBrain, KeyModes_ListAreas_AAL120, KeyModes_ListAreas_Desikan');
+disp(' ');
