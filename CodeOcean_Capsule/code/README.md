@@ -1,9 +1,46 @@
-# code/
+# BraVe modes: temporal occupancy and cognitive function
 
-Entry point: **`run_LEiDA_Voxel_CodeOcean.m`** — run this script directly (it
-is a plain script, not a function; it defines `data_dir`/`results_dir` at
-the top, defaulting to `../data/` and `../results/`). See the top of that
-file for the exact list of expected input files in `../data/`.
+This capsule reproduces the main results reported in the submitted
+manuscript **"Cognitive function linked to temporal occupancy of
+Brain-Ventricle (BraVe) modes"** (Campo, Miguel, Brattico, Nigro, Tafuri,
+Logroscino, Cabral and the Alzheimer's Disease Neuroimaging Initiative
+(ADNI); bioRxiv 2025.01.04.631289;
+[doi.org/10.1101/2025.01.04.631289](https://doi.org/10.1101/2025.01.04.631289)).
+It clusters leading eigenvectors of voxel-level BOLD phase coupling into a
+pyramid of "coupling modes" (K=2:20), identifies the modes whose temporal
+occupancy differs between diagnostic groups and correlates with cognitive
+scores, and generates the corresponding figures.
+
+Running the full manuscript analysis requires the complete ADNI cohort
+(2177 scans), which is far too large to distribute with this capsule (raw
+fMRI data, restricted-access). To let this capsule run end-to-end without
+that dependency, it instead ships with a **reduced, balanced demo sample of
+300 scans**, drawn from the full cohort with
+[`Select_Demo_Subsample.m`](../../Select_Demo_Subsample.m) — 100 unique
+participants per diagnostic group, stratified by sex and age-tertile so the
+groups are closely matched:
+
+```
+CN:  100 participants selected, age 74.5 +/- 7.0, 50 male / 50 female
+MCI: 100 participants selected, age 74.5 +/- 8.0, 50 male / 50 female
+DEM: 100 participants selected, age 74.4 +/- 8.3, 50 male / 50 female
+Selected 300 scans total (300 unique participants, 3 conditions x 100 each).
+Selected 91597 timepoints total for 300 scans (305.3 timepoints/scan on average).
+```
+
+Results from this reduced sample are for **illustrating the pipeline**, not
+for reproducing the manuscript's reported effect sizes or significance
+levels — those require the full cohort. See
+[`../data/README.md`](../data/README.md) for the expected input file names,
+and the main repository [`README.md`](../../README.md) for how the demo
+sample was built and the full pipeline it's part of.
+
+## Entry point
+
+**`run_LEiDA_Voxel_CodeOcean.m`** — run this script directly (it is a plain
+script, not a function; it defines `data_dir`/`results_dir` at the top,
+defaulting to `../data/` and `../results/`). See the top of that file for
+the exact list of expected input files in `../data/`.
 
 ## What it does
 
