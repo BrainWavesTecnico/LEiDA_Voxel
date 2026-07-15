@@ -116,7 +116,7 @@ if n_Cond > 2
     for k_ind = 1:length(rangeK)
         for c = 1:rangeK(k_ind)
             % Create a subplot for the current K and state.
-            subplot_tight(length(rangeK), rangeK(end), c + (k_ind-1) * rangeK(end),0.05)
+            subplot_tight(length(rangeK), rangeK(end), c + (k_ind-1) * rangeK(end), 0.01)
             hold on
             
             % Compute mean occupancy and standard error (ste) for each condition.
@@ -156,7 +156,7 @@ for i = 1:n_compare
     Fig3 = figure('Name', ['Occupancy ' cond{condRow(i)} ' vs ' cond{condCol(i)}]);
     for k_ind = 1:length(rangeK)
         for c = 1:rangeK(k_ind)
-            subplot_tight(length(rangeK), rangeK(end), c + (k_ind-1) * rangeK(end), 0.05)
+            subplot_tight(length(rangeK), rangeK(end), c + (k_ind-1) * rangeK(end), 0.01)
             hold on
             
             % Extract occupancy for the two conditions from the current pair.
