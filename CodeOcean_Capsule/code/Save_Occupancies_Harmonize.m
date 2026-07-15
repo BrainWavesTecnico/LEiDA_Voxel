@@ -79,6 +79,34 @@ if apply_combat
     % Variable to harmonize
     site = double(Scores_ADNI.SITE)';
 
+    % ComBat needs at least 2 scans per site to estimate a within-batch
+    % variance. With a single scan, combat.m's `var(s_data(:,indices)')`
+    % sees a 1xK slice, which MATLAB's var() treats as a plain vector and
+    % collapses to one scalar instead of one variance per feature/mode -
+    % this crashes the vertcat of delta_hat across batches ("Dimensions of
+    % arrays being concatenated are not consistent"). Common with a small
+    % demo subsample spread across many sites. Merge any site with fewer
+    % than 2 scans into one pooled "other sites" batch so every batch
+    % ComBat sees has >= 2 members.
+    site_levels = unique(site);
+    site_counts = arrayfun(@(v) sum(site == v), site_levels);
+    small_sites = site_levels(site_counts < 2);
+    if ~isempty(small_sites)
+        n_small_scans = sum(ismember(site, small_sites));
+        if n_small_scans < 2
+            error('Save_Occupancies_Harmonize:comBatTooFewScans', ...
+                ['Only %d scan(s) belong to a site with fewer than 2 scans, and ' ...
+                 'merging them still leaves fewer than 2 - ComBat cannot estimate a ' ...
+                 'batch effect from a single scan. Increase the sample size, or set ' ...
+                 'apply_combat=0.'], n_small_scans);
+        end
+        warning('Save_Occupancies_Harmonize:mergedSmallSites', ...
+            ['%d site(s) with fewer than 2 scans (%d scans total) were merged into ' ...
+             'one pooled "other sites" batch for ComBat, since a batch effect cannot ' ...
+             'be estimated from a single scan.'], numel(small_sites), n_small_scans);
+        site(ismember(site, small_sites)) = max(site) + 1;
+    end
+
     All_Occupancies_harmonized = cell(length(rangeK), 1);
     for ki = 2:length(rangeK)
         fprintf('ComBat for k=%d\n', rangeK(ki))
