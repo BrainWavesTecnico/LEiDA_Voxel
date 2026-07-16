@@ -9,7 +9,7 @@ Used in: *Cognitive function linked to temporal occupancy of Brain-Ventricle (Br
 ## Requirements
 
 - MATLAB with the Statistics and Machine Learning Toolbox (`kmeans`, `statset`) and Image Processing Toolbox (`imresize3`, `niftiread`).
-- Preprocessed resting-state fMRI data in NIfTI format, aligned to a common MNI template.
+- Preprocessed resting-state fMRI data in NIfTI format, aligned to a common MNI template. See [`Preprocessing/`](Preprocessing/) for the C-PAC pipeline used to preprocess the ADNI data for this study.
 
 ## Pipeline overview
 
@@ -36,6 +36,7 @@ Figures are saved at each step in the results folder in both `.fig` and `.png`/`
 
 ```
 run_LEiDA_Voxel.m                    Main pipeline script (documents and runs all steps)
+Preprocessing/                       C-PAC pipeline used to preprocess the raw ADNI fMRI data (upstream of step 1)
 CodeOcean_Capsule/                   Standalone Code Ocean capsule (self-contained copy of the pipeline)
   code/run_LEiDA_Voxel_CodeOcean.m     Capsule entry point (steps 2-4, from pre-extracted eigenvectors)
   data/                                Put demo eigenvector + Scores files here (not tracked in git)
