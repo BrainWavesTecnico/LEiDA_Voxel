@@ -8,8 +8,10 @@ Used in: *Cognitive function linked to temporal occupancy of Brain-Ventricle (Br
 
 ## Requirements
 
-- MATLAB with the Statistics and Machine Learning Toolbox (`kmeans`, `statset`) and Image Processing Toolbox (`imresize3`, `niftiread`).
+- MATLAB, tested on R2025b (should also work on other recent releases). Required toolboxes: Statistics and Machine Learning Toolbox (`kmeans`, `statset`, `partialcorr`) and Image Processing Toolbox (`imresize3`, `niftiread`). Parallel Computing Toolbox is recommended (not required) — clustering requests parallel K-means and falls back to serial execution without it.
+- No non-standard hardware required; a standard multi-core desktop/laptop CPU is sufficient.
 - Preprocessed resting-state fMRI data in NIfTI format, aligned to a common MNI template. See [`Preprocessing/`](Preprocessing/) for the C-PAC pipeline used to preprocess the ADNI data for this study.
+- Expected runtime: ~2 hours for the [Code Ocean capsule](CodeOcean_Capsule/)'s 300-scan demo sample; ~24 hours for the full 2177-scan manuscript dataset (K=2:20, all pipeline steps), on a normal desktop.
 
 ## Pipeline overview
 

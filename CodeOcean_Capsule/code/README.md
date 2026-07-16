@@ -36,6 +36,36 @@ and the main repository on GitHub,
 [BrainWavesTecnico/LEiDA_Voxel](https://github.com/BrainWavesTecnico/LEiDA_Voxel),
 for how the demo sample was built and the full pipeline it's part of.
 
+## System requirements
+
+- MATLAB, tested on R2025b (should also work on other recent releases with
+  the toolboxes below).
+- Required toolboxes: Statistics and Machine Learning Toolbox (`kmeans`,
+  `statset`, `partialcorr`), Image Processing Toolbox (`imresize3`).
+- Recommended (not required): Parallel Computing Toolbox — clustering
+  (`LEiDA_cluster_VoxelMNI10mm.m`) requests parallel K-means
+  (`statset('UseParallel', 1)`); without this toolbox, MATLAB falls back to
+  running it serially (slower, but still correct).
+- No non-standard hardware required (a standard multi-core desktop/laptop
+  CPU is sufficient; no GPU needed). Tested in Code Ocean's cloud Linux
+  environment; the code itself is platform-independent MATLAB.
+
+## Installation
+
+No separate installation step: install MATLAB (with the toolboxes above)
+if not already installed, and run `run_LEiDA_Voxel_CodeOcean.m` directly —
+it adds this folder (and its `combat/`/`utilities/` subfolders) to the
+MATLAB path automatically. Installing MATLAB itself, if needed, typically
+takes ~20-30 minutes on a normal desktop.
+
+## Expected runtime
+
+- **Demo** (this capsule's default 300-scan sample, K=2:20, `replicates=20`,
+  `n_bootstraps=0`, `apply_combat=0`): approximately **2 hours** on a normal
+  desktop/Code Ocean instance.
+- **Full manuscript dataset** (2177 scans, all pipeline steps): approximately
+  **24 hours**.
+
 ## Entry point
 
 **`run_LEiDA_Voxel_CodeOcean.m`** — run this script directly (it is a plain
