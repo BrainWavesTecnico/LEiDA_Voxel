@@ -67,6 +67,22 @@ utilities/                           Colormaps, MNI masks, Yeo RSN parcellation,
 
 See the header comments in `run_LEiDA_Voxel.m` for the full function reference, input/output descriptions, and a worked example of each step.
 
+## Reproducing the manuscript's results
+
+Running the pipeline on the full 2177-scan ADNI cohort with the settings below reproduces the analysis reported in the manuscript (see Methods, sections 4.5-4.6):
+
+| Step | Parameter | Value |
+|---|---|---|
+| 2. Clustering | `mink`, `maxk` | 2, 20 (209 total cluster centroids, Σ K for K=2..20) |
+| 2. Clustering | `replicates` | 20 (lowest total cluster-to-centroid distance retained per K) |
+| 2b. Occupancies | `apply_combat` | 1 (site harmonization, preserving diagnostic group, age, education, and sex as covariates) |
+| 3a. Condition statistics | test | Welch's t-test (unequal variances), two-sided |
+| 3a. Condition statistics | `n_permutations` | 100,000 (group labels randomly permuted to build an empirical null per pairwise comparison) |
+| 3a. Condition statistics | `n_bootstraps` | 0 (sample sizes are large enough that no within-permutation bootstrap variance estimate was needed) |
+| 3a. Condition statistics | effect size | Hedges' g (sample-size-corrected, preferred over Cohen's d for the unequal group sizes here) |
+
+Expected runtime for the full dataset with these settings: ~24 hours on a normal desktop (see [Requirements](#requirements)).
+
 ## Code Ocean capsule
 
 [`CodeOcean_Capsule/`](CodeOcean_Capsule/) is a self-contained copy of the pipeline, structured as a standard Code Ocean capsule (`code/`, `data/`, `results/`), starting from already-extracted leading eigenvectors (i.e. skipping step 0/1, which need the raw fMRI NIfTI files). It's independent of the rest of this repository — `code/` already has its own copies of every function file it needs (including `combat/` and `utilities/`), so the folder can be uploaded to Code Ocean as-is.
