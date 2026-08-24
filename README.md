@@ -8,8 +8,10 @@ Used in: *Cognitive function linked to temporal occupancy of Brain-Ventricle (Br
 
 ## Requirements
 
-- MATLAB with the Statistics and Machine Learning Toolbox (`kmeans`, `statset`) and Image Processing Toolbox (`imresize3`, `niftiread`).
-- Preprocessed resting-state fMRI data in NIfTI format, aligned to a common MNI template.
+- MATLAB, tested on R2025b (should also work on other recent releases). Required toolboxes: Statistics and Machine Learning Toolbox (`kmeans`, `statset`, `partialcorr`) and Image Processing Toolbox (`imresize3`, `niftiread`). Parallel Computing Toolbox is recommended (not required) — clustering requests parallel K-means and falls back to serial execution without it.
+- No non-standard hardware required; a standard multi-core desktop/laptop CPU is sufficient.
+- Preprocessed resting-state fMRI data in NIfTI format, aligned to a common MNI template. See [`Preprocessing/`](Preprocessing/) for the C-PAC pipeline used to preprocess the ADNI data for this study.
+- Expected runtime: ~2 hours for the [Code Ocean capsule](CodeOcean_Capsule/)'s 300-scan demo sample; ~24 hours for the full 2177-scan manuscript dataset (K=2:20, all pipeline steps), on a normal desktop.
 
 ## Pipeline overview
 
@@ -36,6 +38,7 @@ Figures are saved at each step in the results folder in both `.fig` and `.png`/`
 
 ```
 run_LEiDA_Voxel.m                    Main pipeline script (documents and runs all steps)
+Preprocessing/                       C-PAC pipeline used to preprocess the raw ADNI fMRI data (upstream of step 1)
 CodeOcean_Capsule/                   Standalone Code Ocean capsule (self-contained copy of the pipeline)
   code/run_LEiDA_Voxel_CodeOcean.m     Capsule entry point (steps 2-4, from pre-extracted eigenvectors)
   data/                                Put demo eigenvector + Scores files here (not tracked in git)
@@ -63,6 +66,22 @@ utilities/                           Colormaps, MNI masks, Yeo RSN parcellation,
 2. Edit the directories and filenames at the top of `run_LEiDA_Voxel.m` (`fMRI_dir`, `leida_dir`, `Scores_Table`, `results_dir`, `file_V1`, `cluster_file`, `stats_file`) and run the script section by section to cluster, harmonize, test, and visualize the coupling modes.
 
 See the header comments in `run_LEiDA_Voxel.m` for the full function reference, input/output descriptions, and a worked example of each step.
+
+## Reproducing the manuscript's results
+
+Running the pipeline on the full 2177-scan ADNI cohort with the settings below reproduces the analysis reported in the manuscript (see Methods, sections 4.5-4.6):
+
+| Step | Parameter | Value |
+|---|---|---|
+| 2. Clustering | `mink`, `maxk` | 2, 20 (209 total cluster centroids, Σ K for K=2..20) |
+| 2. Clustering | `replicates` | 20 (lowest total cluster-to-centroid distance retained per K) |
+| 2b. Occupancies | `apply_combat` | 1 (site harmonization, preserving diagnostic group, age, education, and sex as covariates) |
+| 3a. Condition statistics | test | Welch's t-test (unequal variances), two-sided |
+| 3a. Condition statistics | `n_permutations` | 100,000 (group labels randomly permuted to build an empirical null per pairwise comparison) |
+| 3a. Condition statistics | `n_bootstraps` | 0 (sample sizes are large enough that no within-permutation bootstrap variance estimate was needed) |
+| 3a. Condition statistics | effect size | Hedges' g (sample-size-corrected, preferred over Cohen's d for the unequal group sizes here) |
+
+Expected runtime for the full dataset with these settings: ~24 hours on a normal desktop (see [Requirements](#requirements)).
 
 ## Code Ocean capsule
 
