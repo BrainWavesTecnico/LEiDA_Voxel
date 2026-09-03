@@ -18,10 +18,6 @@ function V1 = Get_LeadingEigenvector_RankTwo(theta)
 % eigendecomposition, which is what makes whole-brain voxel-resolution
 % LEiDA (tens of thousands of voxels per TR) computationally tractable.
 %
-% This mirrors the rank-2 trick used in the custom out-of-core Python
-% LEiDA pipeline (get_leading_eigenvectors), ported here for the MATLAB
-% voxel-level pipeline.
-%
 % INPUT
 %   theta   n_voxels x 1 (or 1 x n_voxels) vector of instantaneous voxel
 %           phases (radians) at a single TR

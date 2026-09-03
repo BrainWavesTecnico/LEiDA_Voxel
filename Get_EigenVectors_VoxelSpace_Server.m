@@ -27,7 +27,13 @@ extension_name= 'rest_space-MNI152NLin6ASym_desc-preproc_bold.nii.gz';
 results_dir    = fMRI_dir;
 
 % File containing a binary mask of brain voxels of interest in MNI space
-% Adjust voxel size to tune the number of Voxels according to RAM space
+% Voxel size used to be constrained by RAM, since the leading eigenvector
+% was computed via eigs() on a full n_voxels x n_voxels matrix built at
+% every TR. Now that Get_LeadingEigenvector_RankTwo.m computes it via the
+% rank-2 subspace trick (never forming that matrix), n_voxels no longer
+% drives RAM usage this way, so a finer-grained mask can be used; voxel
+% count now mainly trades off runtime and downstream (e.g. clustering)
+% compute cost instead.
 Mask_file='MNI_10mm3_FullBrain.mat';
 
 % File to save with the leading eigenvectors
