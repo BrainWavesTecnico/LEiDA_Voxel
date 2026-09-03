@@ -38,6 +38,11 @@ TimeMax=200;
 
 %%
 
+% Add this repository's own utilities/ folder to the path (regardless of
+% the current working directory), so Get_LeadingEigenvector_RankTwo.m is
+% always found
+addpath(genpath(fileparts(mfilename('fullpath'))));
+
 % Add all subfolders of results directory to path
 addpath(genpath(results_dir));
 addpath(genpath(fMRI_dir))
@@ -95,10 +100,18 @@ for s = 1:num_scans
         end
 
         % Compute leading eigenvector of each phase coherence matrix
+        %
+        % NOTE: cos(theta_i - theta_j) is always rank <= 2 (see
+        % utilities/Get_LeadingEigenvector_RankTwo.m for the derivation),
+        % so we never build the n_voxels x n_voxels matrix and never call
+        % eigs() on it. This is what makes voxel-resolution LEiDA (tens
+        % of thousands of voxels) computationally tractable; at this
+        % resolution, eigs(cos(fMRI_ts(:,t) - fMRI_ts(:,t)'),1) would
+        % require an n_voxels x n_voxels matrix in memory for every TR.
         for t = 2:T-1 % exclude 1st and last TR after hilbert transform
 
             % Save the leading eigenvector for time t
-            [v1,~] = eigs(cos(fMRI_ts(:,t) - fMRI_ts(:,t)'),1);
+            v1 = Get_LeadingEigenvector_RankTwo(fMRI_ts(:,t));
 
             t_all = t_all + 1; % time point in V1_all
 
@@ -118,4 +131,3 @@ V1_all(sum(V1_all,2)>0,:)= -(V1_all(sum(V1_all,2)>0,:));
 disp(' ');
 disp('- Saving leading eigenvectors in MNI 10mm space');
 save([results_dir  file_V1], 'V1_all', 'ind_voxels', 'MNI_lowres_Mask', 'data_info', 'Scan_num','Scan_length', '-v7.3')
-
