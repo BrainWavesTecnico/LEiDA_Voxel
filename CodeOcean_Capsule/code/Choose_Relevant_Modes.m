@@ -1,15 +1,28 @@
-function [Key_Modes_KC, Key_Centroids] = Choose_Relevant_Modes(results_dir, cluster_file, stats_file)
+function [Key_Modes_KC, Key_Centroids] = Choose_Relevant_Modes(results_dir, cluster_file, stats_file, generate_pyramid_groups, selection_criterion)
 % Choose_Relevant_Modes automatically selects the modes that differ most
 % between conditions after LEiDA_stats_Voxel_FracOccup_ComBat, keeping modes
 % that are significant (after multiple-testing correction) with an effect
 % size > 0.35, then grouping strongly-correlated modes (corr > 0.65) and
-% keeping one representative (most significant) mode per group.
+% keeping one representative mode per group, chosen by selection_criterion.
 %
 % INPUT:
 %   results_dir  - Directory where the cluster and stats files are stored.
 %   cluster_file - Clustering results file name.
 %   stats_file   - Statistical results file name (output of
 %                  LEiDA_stats_Voxel_FracOccup_ComBat).
+%   generate_pyramid_groups - 1 to render and save the centroid pyramid
+%                  colored by group assignment (GroupPyramid_SideView.png/.fig
+%                  in results_dir); 0 (default) to skip it.
+%   selection_criterion - 'effectsize' (default) picks each group's/seed's
+%                  representative by the largest Hedges' g across the 3
+%                  pairwise comparisons. 'pvalue' picks by the smallest
+%                  permutation p-value instead (the original criterion,
+%                  with its indexing bug fixed - see below). Effect size is
+%                  continuous and generically unique; p-values from
+%                  bootstrap_within_permutation_ttest2/paired_samples are
+%                  floored at 1/(niter+1), so once enough permutations are
+%                  used, many modes tie exactly at that floor and "smallest
+%                  p" stops discriminating between them.
 %
 % OUTPUT:
 %   Key_Modes_KC   - Nx12 matrix, one row per selected key mode:
@@ -26,7 +39,15 @@ function [Key_Modes_KC, Key_Centroids] = Choose_Relevant_Modes(results_dir, clus
 
 % Function to detect the most relevant modes after statistical analysis
 
-generate_pyramid_groups=0;
+if nargin < 4 || isempty(generate_pyramid_groups)
+    generate_pyramid_groups = 0;
+end
+if nargin < 5 || isempty(selection_criterion)
+    selection_criterion = 'effectsize';
+end
+if ~ismember(selection_criterion, {'effectsize', 'pvalue'})
+    error('Choose_Relevant_Modes:badCriterion', 'selection_criterion must be ''effectsize'' or ''pvalue''.');
+end
 
 % Load statistical occupancy data and condition info.
 load([results_dir stats_file], 'P', 'P_pval', 'cond', 'condCol', 'condRow', 'Index_Conditions','rangeK','effectsize');
@@ -86,8 +107,25 @@ G=1;
 ind_start=1;
 while size(Centroids_Signif,1)>0
 
-    [line_index, ~]=ind2sub(size(Signif_Modes_KC),find(Signif_Modes_KC==min(min(Signif_Modes_KC(:,5:7)))));
-    %[line_index, ~]=ind2sub(size(Signif_Modes_KC),find(squeeze(max(effectsize))==max(max(squeeze(effectsize(2,:,:))))));
+    % Seed mode for this group. Previously: find every cell of
+    % Signif_Modes_KC equal to the matrix-wide min p-value. With p-values
+    % now empirical (see bootstrap_within_permutation_ttest2.m /
+    % bootstrap_within_permutation_paired_samples.m) and floored at
+    % 1/(niter+1), many modes can sit exactly at that floor, so find()
+    % returned dozens of matches, line_index became a vector, and
+    % CorrMode(line_index,:) silently turned into a multi-row matrix whose
+    % linear indices no longer mapped back to single rows downstream.
+    switch selection_criterion
+        case 'effectsize'
+            % max() returns the FIRST occurrence on a tie, so this is
+            % always scalar, and it no longer degrades once p-values
+            % saturate at the permutation floor.
+            [~, line_index] = max(max(Signif_Modes_KC(:,8:10), [], 2));
+        case 'pvalue'
+            pv = Signif_Modes_KC(:,5:7);
+            [~, lin] = min(pv(:));
+            [line_index, ~] = ind2sub(size(pv), lin);
+    end
 
     CorrMode=corrcoef(Centroids_Signif');
     Group=find(CorrMode(line_index,:)>0.65);
@@ -123,10 +161,25 @@ Key_member_index=zeros(N_groups,1);
 
 for G=1:N_groups
 
-    Group_members=Signif_Modes_KC_reorder(:,12)==G;
+    Group_members = find(Signif_Modes_KC_reorder(:,12)==G);
 
-        %Group_members=Group_members(Signif_Modes_KC_reorder(Group_members,4) == max(Signif_Modes_KC_reorder(Group_members,4)));
-        [Key_member_index(G), b]=ind2sub(size(Signif_Modes_KC_reorder),find(Signif_Modes_KC_reorder==min(min(Signif_Modes_KC_reorder(Group_members,5:7)))));
+    % Representative for this group. Previously: find() searched the WHOLE
+    % matrix for the min p-value found within this group's rows, so once
+    % several groups had ties at the permutation floor, it could return a
+    % row belonging to a DIFFERENT group entirely - Group_members here is
+    % already scoped to rows in group G, so restricting the search to it
+    % (via indexing, not another matrix-wide find()) fixes that regardless
+    % of criterion.
+    switch selection_criterion
+        case 'effectsize'
+            eff_group = max(Signif_Modes_KC_reorder(Group_members,8:10), [], 2);
+            [~, local_idx] = max(eff_group);
+        case 'pvalue'
+            pv_group = Signif_Modes_KC_reorder(Group_members,5:7);
+            [~, lin] = min(pv_group(:));
+            [local_idx, ~] = ind2sub(size(pv_group), lin);
+    end
+    Key_member_index(G) = Group_members(local_idx);
 
 end
 
@@ -179,6 +232,14 @@ if generate_pyramid_groups
     disp(' ');
 
     Group_cmap=[137 207 240; 227 120 91; 250 221 107; 207 225 185] ./ 256;
+    if N_groups > size(Group_cmap, 1)
+        % More groups than the hand-picked 4-color palette covers - this
+        % can happen because changing selection_criterion changes which
+        % mode seeds each group, which can change how many groups form.
+        % Extend with extra distinguishable colors instead of crashing on
+        % Group_cmap(group_assignement,:) below.
+        Group_cmap = [Group_cmap; lines(N_groups - size(Group_cmap, 1))];
+    end
 
     disp('Rendering the centroids colored according to group assignement:')
     Fig = figure('Position', get(0, 'Screensize'));
