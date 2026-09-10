@@ -52,7 +52,11 @@ end
 % Load statistical occupancy data and condition info.
 load([results_dir stats_file], 'P', 'P_pval', 'cond', 'condCol', 'condRow', 'Index_Conditions','rangeK','effectsize');
 
-P_pval_sig_sum=squeeze(sum(P_pval< (0.05 / sum(rangeK)/ 3/2) & P_pval>0 & effectsize> 0.35));
+% Bonferroni across the whole pyramid only (sum(rangeK) modes), matching
+% the 0.05/209 threshold described in the manuscript Methods/figure
+% caption. Previously divided by an extra 3*2 with no documented
+% rationale (0.05/209/3/2 ~= 3.99e-05 vs. the stated 0.05/209 ~= 2.39e-04).
+P_pval_sig_sum=squeeze(sum(P_pval< (0.05 / sum(rangeK)) & P_pval>0 & effectsize> 0.35));
 
 % NOTE: ind2sub must use P_pval_sig_sum's actual size (length(rangeK) x rangeK(end)).
 % A previous version hardcoded [20, 20], which only matched when rangeK == 1:20;
