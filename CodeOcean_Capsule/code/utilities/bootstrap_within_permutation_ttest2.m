@@ -21,12 +21,6 @@ function stats = bootstrap_within_permutation_ttest2(data, design, niter, nboot,
 %   stats.pvals_2sided- two-sided p-value
 %   stats.eff         - Hedge's g effect size
 %
-% P-values are the empirical proportion of the permutation null distribution
-% at least as extreme as the observed statistic, with the add-one correction
-% (Phipson & Smyth, 2010): p = (1 + count) / (niter + 1). This bounds p below
-% by 1/(niter + 1) - it can never be reported as smaller than that, however
-% large the effect, so niter sets the finest p-value the test can resolve.
-%
 % Authors: Joana Cabral, Miguel Farinha
 % Revised: 2025
 
@@ -74,15 +68,19 @@ for iter = 1:niter
     end
 end
 
-%% Empirical p-values from the permutation null distribution
-% Add-one correction (Phipson & Smyth, 2010): counts include the observed
-% statistic itself, so p is bounded below by 1/(niter + 1) and can never
-% be exactly zero, whatever the effect size.
-pval_right = (1 + sum(null_dist >= obs_stat)) / (niter + 1);   % proportion of the null >= observed
-pval_left  = (1 + sum(null_dist <= obs_stat)) / (niter + 1);   % proportion of the null <= observed
+%% P-values via kernel density estimate of null distribution
+NCDF = max(200, round(200 * niter / 5000));
+[fi, xi] = ksdensity(null_dist, 'function', 'cdf', 'npoints', NCDF);
+
+xi_ext = [atanh(-1 + eps), xi, atanh(1 - eps)];
+fi_ext = [0, fi, 1];
+
+pval_left  = interp1(xi_ext, fi_ext, obs_stat, 'linear', 'extrap');
+pval_left  = max(0, min(1, pval_left));
+pval_right = 1 - pval_left;
 
 stats.pvals        = [pval_right, pval_left];
-stats.pvals_2sided = (1 + sum(abs(null_dist) >= abs(obs_stat))) / (niter + 1);
+stats.pvals_2sided = 2 * min(pval_right, pval_left);
 
 %% Hedge's g effect size
 s_pooled = sqrt(((n1 - 1) * var(data(g1)) + (n2 - 1) * var(data(g2))) / (n1 + n2 - 2));

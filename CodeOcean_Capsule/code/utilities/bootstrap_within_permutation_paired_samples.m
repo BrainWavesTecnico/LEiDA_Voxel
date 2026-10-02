@@ -26,11 +26,10 @@ function [stats] = bootstrap_within_permutation_paired_samples(data,design,niter
 % tvals  test statistic values for datapoint, positive tvals mean 
 %        group 1 > group 2
 %
-% Notes: p-values are the empirical proportion of the permutation null
-% distribution at least as extreme as the observed statistic, with the
-% add-one correction (Phipson & Smyth, 2010): p = (1 + count) / (niter + 1).
-% This bounds p below by 1/(niter + 1), whatever the effect size, so niter
-% sets the finest p-value the test can resolve.
+% Notes: the null distribution is estimated using the matlab function
+% ksdensity by interpolating the permuted data. The distribution is
+% estimated over 200 points if niter<=5000, otherwise it is estimated over
+% round(200*niter/5000) points, for greater precision.
 
 %  Miguel Farinha January 2022
 %  adapted from: Enrico Glerean 2013, Henrique Fernandes 2014 &
@@ -173,11 +172,18 @@ function pval = tt_np_pval(data,g1,g2,niter,nboot,tval)
         end
     end
     
-    % Empirical p-values from the permutation null distribution, with the
-    % add-one correction (Phipson & Smyth, 2010): p is bounded below by
-    % 1/(niter+1) regardless of how extreme tval is.
-    pval_right = (1 + sum(outiter >= tval)) / (niter + 1); % G1 > G2
-    pval_left  = (1 + sum(outiter <= tval)) / (niter + 1); % G1 < G2
+    NCDF = 200;
+    if(niter > 5000)
+        NCDF = round(200*niter/5000);
+    end
+    [fi, xi] = ksdensity(outiter,'function','cdf','npoints',NCDF); % estimated cumulative distribution function
+
+    % trick to avoid NaNs, we approximate the domain of the CDF between
+    % -Inf and Inf using the atanh function and the eps matlab precision
+    % variable
+    
+    pval_left = interp1([atanh(-1+eps) xi atanh(1-eps)],[0 fi 1],tval); % G1 > G2
+    pval_right = 1-pval_left; % G1 < G2
     pval = [pval_right pval_left];
 end
  
