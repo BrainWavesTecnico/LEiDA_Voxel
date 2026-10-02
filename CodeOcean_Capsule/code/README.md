@@ -1,11 +1,16 @@
 # BraVe modes: temporal occupancy and cognitive function
 
-This capsule reproduces the main results reported in the submitted
-manuscript **"Cognitive function linked to temporal occupancy of
-Brain-Ventricle (BraVe) modes"** (Campo, Miguel, Brattico, Nigro, Tafuri,
-Logroscino, Cabral and the Alzheimer's Disease Neuroimaging Initiative
-(ADNI); bioRxiv 2025.01.04.631289;
-[doi.org/10.1101/2025.01.04.631289](https://doi.org/10.1101/2025.01.04.631289)).
+This capsule reproduces the main results reported in the manuscript
+**"Occupancy of resting-state Brain-Ventricle (BraVe) modes tracks
+Cognitive Decline"** (Campo, Miguel, Brattico, Nigro, Tafuri, Logroscino,
+Cabral and the Alzheimer's Disease Neuroimaging Initiative (ADNI); in
+revision at Nature Communications). The bioRxiv preprint
+(2025.01.04.631289;
+[doi.org/10.1101/2025.01.04.631289](https://doi.org/10.1101/2025.01.04.631289))
+has not yet been updated and still carries the earlier title, "Cognitive
+function linked to temporal occupancy of Brain-Ventricle (BraVe) modes" —
+same manuscript, same DOI.
+
 It clusters leading eigenvectors of voxel-level BOLD phase coupling into a
 pyramid of "coupling modes" (K=2:20), identifies the modes whose temporal
 occupancy differs between diagnostic groups and correlates with cognitive
@@ -126,6 +131,3 @@ their counterparts in the main repository on GitHub,
   keep runtime reasonable on a demo-sized sample; `apply_combat=0` by
   default since a small demo subsample is unlikely to have enough scans per
   site for reliable harmonization.
-
-If you copy a fix from the main repo's function files into this folder,
-keep these differences in mind rather than overwriting them wholesale.
