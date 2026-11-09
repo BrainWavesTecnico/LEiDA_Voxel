@@ -34,7 +34,14 @@ of Connectomes, v1.8.7.dev1), via Docker.
   - `pipeline_name` set to `cpac-adni-ants-linear-mcflirt`, so its outputs
     are kept separate from the original pipeline's.
 
-  To use it, point `CONFIG_FILE` in `run_cpapc_adni_ants.sh` at this file.
+- **`cpac_pipeline_linear_mcflirt_nobandpass.yml`** — the same as
+  `cpac_pipeline_linear_mcflirt_0.01_0.1.yml` but **without the band-pass
+  filter**: the nuisance regression (24 motion parameters, mean white
+  matter, 2nd-order polynomial detrending) is unchanged, and the data is left
+  unfiltered so filtering can be done later. `pipeline_name` is
+  `cpac-adni-ants-linear-mcflirt-nobandpass`.
+
+  To use either variant, point `CONFIG_FILE` in `run_cpapc_adni_ants.sh` at it.
   Use a new `OUTPUT_DIR` too: the script skips subjects already marked as
   completed in that directory's log.
 
