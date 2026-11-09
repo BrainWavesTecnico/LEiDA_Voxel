@@ -19,6 +19,20 @@ of Connectomes, v1.8.7.dev1), via Docker.
 - **`cpac_pipeline_with_mean_best_for_csf_0.01_0.1.yml`** — the C-PAC
   pipeline configuration used for this dataset (referenced by
   `run_cpapc_adni_ants.sh` via `CONFIG_FILE`).
+- **`cpac_pipeline_linear_mcflirt_0.01_0.1.yml`** — variant of the config
+  above that avoids interpolation ringing (spurious spatial waves in the
+  MNI-space BOLD, strongest at sharp edges such as the ventricles). It is
+  identical except for:
+  - functional-to-MNI resampling with `Linear` instead of
+    `LanczosWindowedSinc` (`func_registration_to_template.ANTs_pipelines.interpolation`);
+  - motion correction with FSL MCFLIRT instead of AFNI `3dvolreg`
+    (`motion_correction.using`);
+  - `pipeline_name` set to `cpac-adni-ants-linear-mcflirt`, so its outputs
+    are kept separate from the original pipeline's.
+
+  To use it, point `CONFIG_FILE` in `run_cpapc_adni_ants.sh` at this file.
+  Use a new `OUTPUT_DIR` too: the script skips subjects already marked as
+  completed in that directory's log.
 
 ## Pipeline configuration summary
 
