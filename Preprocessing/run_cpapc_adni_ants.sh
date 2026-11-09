@@ -5,7 +5,18 @@ OUTPUT_DIR="/home/vmiguel/Desktop/cpac_outputs_ants_mean_v4"
 CONFIG_FILE="/home/vmiguel/Desktop/pipelines/cpac_pipeline_with_mean_best_for_csf_0.01_0.1.yml"
 BATCH_SIZE=100
 PARALLEL_JOBS=3
+# Optional settings (leave empty to use the defaults / the values in CONFIG_FILE)
+CPAC_IMAGE="fcpindi/c-pac:latest"   # e.g. fcpindi/c-pac:release-v1.8.7 to pin the version
+DOCKER_PLATFORM=""                  # "linux/amd64" on Apple Silicon Macs (runs under Rosetta)
+N_CPUS=""                           # cores per subject (overrides max_cores_per_participant and num_ants_threads)
+MEM_GB=""                           # memory per subject in GB (overrides maximum_memory_per_participant)
 LOG_FILE="$OUTPUT_DIR/processing_log.txt"
+
+CPAC_ARGS=()
+[ -n "$N_CPUS" ] && CPAC_ARGS+=(--n_cpus "$N_CPUS" --num_ants_threads "$N_CPUS")
+[ -n "$MEM_GB" ] && CPAC_ARGS+=(--mem_gb "$MEM_GB")
+PLATFORM_ARGS=()
+[ -n "$DOCKER_PLATFORM" ] && PLATFORM_ARGS+=(--platform "$DOCKER_PLATFORM")
 
 # Create output directory
 mkdir -p $OUTPUT_DIR
@@ -73,14 +84,15 @@ process_subject() {
     echo "Date: $(date)" | tee -a "$subject_log"
     echo "================================================" | tee -a "$subject_log"
 
-    docker run --rm \
+    docker run --rm ${PLATFORM_ARGS[@]+"${PLATFORM_ARGS[@]}"} \
       -v $BIDS_DIR:/bids:ro \
       -v $OUTPUT_DIR:/outputs \
       -v $CONFIG_FILE:/pipeline_config.yml:ro \
-      fcpindi/c-pac:latest \
+      "$CPAC_IMAGE" \
       /bids /outputs participant \
       --pipeline_file /pipeline_config.yml \
-      --participant_label $subject >> "$subject_log" 2>&1
+      --participant_label $subject \
+      ${CPAC_ARGS[@]+"${CPAC_ARGS[@]}"} >> "$subject_log" 2>&1
 
     if [ $? -eq 0 ]; then
         echo "✓ Successfully completed: $subject at $(date)" | tee -a "$subject_log" >> "$LOG_FILE"

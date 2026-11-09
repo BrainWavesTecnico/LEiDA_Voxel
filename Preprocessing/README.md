@@ -15,7 +15,11 @@ of Connectomes, v1.8.7.dev1), via Docker.
   Auto-detects and skips subjects already marked as completed in the log
   file, so it can be re-run repeatedly to work through a large cohort in
   batches. Edit `BIDS_DIR`, `OUTPUT_DIR`, and `CONFIG_FILE` at the top to
-  match your paths before running.
+  match your paths before running. Optional settings below them choose the
+  C-PAC image tag (`CPAC_IMAGE`), the Docker platform (`DOCKER_PLATFORM`,
+  `linux/amd64` on Apple Silicon Macs) and the cores and memory per subject
+  (`N_CPUS`, `MEM_GB`), overriding the values in the pipeline config. Left
+  empty, the script behaves as before.
 - **`cpac_pipeline_with_mean_best_for_csf_0.01_0.1.yml`** — the C-PAC
   pipeline configuration used for this dataset (referenced by
   `run_cpapc_adni_ants.sh` via `CONFIG_FILE`).
