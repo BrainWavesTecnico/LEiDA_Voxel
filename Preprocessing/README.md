@@ -70,3 +70,9 @@ of Connectomes, v1.8.7.dev1), via Docker.
 Outputs are written in MNI152 space (2mm), which is what
 [`Get_EigenVectors_VoxelSpace_Server.m`](../Get_EigenVectors_VoxelSpace_Server.m)
 expects as input.
+
+## Running on the ISR HPC cluster
+
+The cluster has no Docker. [`hpc_isr/`](hpc_isr/README.md) has Slurm and
+Apptainer scripts that run the same C-PAC pipeline there, one job-array task
+per subject, with step-by-step instructions.
