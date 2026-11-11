@@ -1,9 +1,9 @@
 %YAML 1.1
 
 ---
-# Variant of cpac_pipeline_linear_mcflirt_0.01_0.1.yml with functional outputs
-# in MNI space at 3 mm instead of 2 mm (Linear resampling, MCFLIRT motion
-# correction). All other settings are identical.
+# Variant of cpac_pipeline_linear_mcflirt_nobandpass.yml with functional
+# outputs in MNI space at 3 mm instead of 2 mm (Linear resampling, MCFLIRT
+# motion correction, no band-pass filter). All other settings are identical.
 #
 
 # CPAC Pipeline Configuration YAML file
@@ -16,7 +16,7 @@
 pipeline_setup:
   # Name for this pipeline configuration - useful for identification.
   # This string will be sanitized and used in filepaths
-  pipeline_name: cpac-adni-ants-linear-mcflirt-3mm
+  pipeline_name: cpac-adni-ants-linear-mcflirt-3mm-nobandpass
   output_directory:
     path: /outputs/output
     source_outputs_dir: None
@@ -511,7 +511,7 @@ nuisance_corrections:
     space: native
     create_regressors: On
     Regressors:
-      - Name: 'adni_mean_wm_only'
+      - Name: 'adni_mean_wm_only_nobandpass'
         Motion:
           include_delayed: true
           include_squared: true
@@ -522,10 +522,7 @@ nuisance_corrections:
           erode_mask: Off
         PolyOrt:
           degree: 2
-        Bandpass:
-          bottom_frequency: 0.01
-          top_frequency: 0.10
-          method: default
+        # No Bandpass block: no temporal filtering (filter later, e.g. in LEiDA).
     lateral_ventricles_mask: $FSLDIR/data/atlases/HarvardOxford/HarvardOxford-lateral-ventricles-thr25-2mm.nii.gz
     bandpass_filtering_order: 'After'
     regressor_masks:

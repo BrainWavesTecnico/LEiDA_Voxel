@@ -41,11 +41,11 @@ of Connectomes, v1.8.7.dev1), via Docker.
   unfiltered so filtering can be done later. `pipeline_name` is
   `cpac-adni-ants-linear-mcflirt-nobandpass`.
 
-- **`cpac_pipeline_linear_mcflirt_3mm_0.01_0.1.yml`** — the same as
-  `cpac_pipeline_linear_mcflirt_0.01_0.1.yml` but with functional outputs in
-  MNI space at **3 mm** instead of 2 mm, closer to the ~3.4 mm native EPI
-  voxels, so less upsampling. `pipeline_name` is
-  `cpac-adni-ants-linear-mcflirt-3mm`.
+- **`cpac_pipeline_linear_mcflirt_3mm_nobandpass.yml`** — the same as
+  `cpac_pipeline_linear_mcflirt_nobandpass.yml` (no band-pass filter) but
+  with functional outputs in MNI space at **3 mm** instead of 2 mm, closer to
+  the ~3.4 mm native EPI voxels, so less upsampling. `pipeline_name` is
+  `cpac-adni-ants-linear-mcflirt-3mm-nobandpass`.
 
   To use any of these variants, point `CONFIG_FILE` in
   `run_cpapc_adni_ants.sh` at it.
