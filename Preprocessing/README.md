@@ -108,12 +108,15 @@ breathing-related nodding) gives odd and even slices different intensity
 from volume to volume: uniform within each slice, alternating along the slice
 axis, with a strength that can change sign along it. After normalization this
 appears as stripes across MNI slices, and it survives band-pass filtering.
-For each volume, the script fits each slice's mean signal and its neighbours'
-(5 slices) with a local linear trend plus an alternating term, and subtracts
-the alternating part from that slice. Patterns within a slice, signals that
-vary smoothly across slices and voxel means are kept. It saves the cleaned
-native data, the subtracted artefact (`*_desc-destripe_artefact.tsv`, slices
-× volumes) and prints how much variance was removed.
+For each volume, the script fits each slice with a plane (an offset plus
+left-right and front-back gradients: the shape a small head rotation such
+as nodding produces), then fits each of these components across the 5
+nearest slices with a local linear trend plus an alternating term, and
+subtracts the alternating plane from that slice (`--model mean` removes
+only the offset). Patterns within a slice beyond a plane, signals that vary
+smoothly across slices and voxel means are kept. It saves the cleaned
+native data, the subtracted components (`*_desc-destripe_artefact-*.tsv`,
+slices × volumes) and prints how much variance was removed.
 
 ## Running on the ISR HPC cluster
 
