@@ -16,14 +16,21 @@
 #     -v /path/to/cpac_output_dir:/data \
 #     -v ~/LEiDA_Voxel/Preprocessing:/scripts:ro \
 #     --entrypoint bash fcpindi/c-pac:release-v1.8.7 \
-#     /scripts/native_to_mni_affine_nn.sh /data/output/pipeline_<name>/sub-C01_ses-pre 2
+#     /scripts/native_to_mni_affine_nn.sh /data/output/pipeline_<name>/sub-C01/ses-pre 2 --destripe
 #
 # Arguments: <C-PAC subject/session output folder (has anat/ and func/)> [MNI voxel size in mm, default 2]
+#            [--destripe]  first remove the odd/even slice artefact in native
+#                          space (destripe_slices.py, next to this script)
 # Writes to <that folder>/affine_nn/.
 set -euo pipefail
 
-SES_DIR=${1:?usage: native_to_mni_affine_nn.sh <cpac sub/ses output folder> [res_mm]}
-RES=${2:-2}
+DESTRIPE=0; ARGS=()
+for a in "$@"; do
+    if [ "$a" = "--destripe" ]; then DESTRIPE=1; else ARGS+=("$a"); fi
+done
+SES_DIR=${ARGS[0]:?usage: native_to_mni_affine_nn.sh <cpac sub/ses output folder> [res_mm] [--destripe]}
+RES=${ARGS[1]:-2}
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ANAT="$SES_DIR/anat"; FUNC="$SES_DIR/func"
 OUT="$SES_DIR/affine_nn"; W="$OUT/work"
 mkdir -p "$W"
@@ -56,6 +63,22 @@ TR=$(3dinfo -tr "$BOLD")
 echo "TR          : $TR s, output voxel size: ${RES} mm"
 
 TPL="$FSLDIR/data/standard/MNI152_T1_2mm_brain.nii.gz"
+NAME=$(basename "$BOLD" _desc-preproc_bold.nii.gz)
+DESC="preprocNN"
+
+# 0. Optional: remove the odd/even slice artefact in native space.
+if [ "$DESTRIPE" = 1 ]; then
+    PY=""
+    for c in python3 python /usr/local/miniconda/bin/python; do
+        if command -v "$c" >/dev/null 2>&1 && "$c" -c "import nibabel, numpy" 2>/dev/null; then PY=$c; break; fi
+    done
+    [ -n "$PY" ] || { echo "ERROR: no Python with nibabel and numpy found in the container"; exit 1; }
+    CLEAN="$OUT/${NAME}_desc-preprocDestriped_bold.nii.gz"
+    echo "== De-striping (odd/even slice artefact) in native space"
+    "$PY" "$HERE/destripe_slices.py" "$BOLD" "$CLEAN" --report "$OUT/${NAME}_desc-destripe"
+    BOLD="$CLEAN"
+    DESC="preprocDestripedNN"
+fi
 
 # 1. T1 brain -> MNI152 brain: rigid then affine (12 parameters), no SyN.
 if [ ! -f "$W/t1_to_mni_0GenericAffine.mat" ]; then
@@ -97,8 +120,7 @@ else
 fi
 
 # 4. One nearest-neighbour resampling of the whole time series.
-NAME=$(basename "$BOLD" _desc-preproc_bold.nii.gz)
-DEST="$OUT/${NAME}_space-MNI152affine_res-${RES}mm_desc-preprocNN_bold.nii.gz"
+DEST="$OUT/${NAME}_space-MNI152affine_res-${RES}mm_desc-${DESC}_bold.nii.gz"
 echo "== Applying func->T1->MNI (affine) with nearest neighbour"
 antsApplyTransforms -d 3 -e 3 -n NearestNeighbor --float 1 \
     -i "$BOLD" -r "$REF" -o "$DEST" \

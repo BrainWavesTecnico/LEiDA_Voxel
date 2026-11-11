@@ -102,6 +102,19 @@ the C-PAC container after C-PAC, per subject/session; see the header of the
 script for the command. Note that C-PAC's motion correction has already
 resampled the native data once (MCFLIRT, trilinear) before this step.
 
+With **`--destripe`**, it first runs **`destripe_slices.py`** on the native
+data. With interleaved slice acquisition, head motion within a TR (e.g.
+breathing-related nodding) gives odd and even slices different intensity
+from volume to volume: uniform within each slice, alternating along the slice
+axis, with a strength that can change sign along it. After normalization this
+appears as stripes across MNI slices, and it survives band-pass filtering.
+For each volume, the script fits each slice's mean signal and its neighbours'
+(5 slices) with a local linear trend plus an alternating term, and subtracts
+the alternating part from that slice. Patterns within a slice, signals that
+vary smoothly across slices and voxel means are kept. It saves the cleaned
+native data, the subtracted artefact (`*_desc-destripe_artefact.tsv`, slices
+× volumes) and prints how much variance was removed.
+
 ## Running on the ISR HPC cluster
 
 The cluster has no Docker. [`hpc_isr/`](hpc_isr/README.md) has Slurm and
