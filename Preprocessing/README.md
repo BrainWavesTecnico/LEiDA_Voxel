@@ -89,6 +89,19 @@ Outputs are written in MNI152 space (2mm), which is what
 [`Get_EigenVectors_VoxelSpace_Server.m`](../Get_EigenVectors_VoxelSpace_Server.m)
 expects as input.
 
+## Affine, nearest-neighbour normalization (no interpolation smoothing)
+
+**`native_to_mni_affine_nn.sh`** maps C-PAC's native-space preprocessed BOLD
+(`*_desc-preproc_bold.nii.gz` without `space-`) to MNI152 with a single
+resampling step that does not mix voxel values: an **affine-only** transform
+(func→T1 from C-PAC, or an ANTs rigid fit if C-PAC didn't write it; T1→MNI
+from an ANTs Rigid+Affine fit, no SyN) applied with **nearest-neighbour**
+interpolation, so each MNI voxel takes the value of exactly one native voxel.
+C-PAC itself only offers Linear, BSpline or Lanczos for this step. Run it in
+the C-PAC container after C-PAC, per subject/session; see the header of the
+script for the command. Note that C-PAC's motion correction has already
+resampled the native data once (MCFLIRT, trilinear) before this step.
+
 ## Running on the ISR HPC cluster
 
 The cluster has no Docker. [`hpc_isr/`](hpc_isr/README.md) has Slurm and
