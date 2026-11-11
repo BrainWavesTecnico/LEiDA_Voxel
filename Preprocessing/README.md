@@ -89,6 +89,20 @@ Outputs are written in MNI152 space (2mm), which is what
 [`Get_EigenVectors_VoxelSpace_Server.m`](../Get_EigenVectors_VoxelSpace_Server.m)
 expects as input.
 
+## Band-pass before slice-timing correction
+
+C-PAC always runs slice-timing correction before its band-pass. To filter
+first, **`bandpass_bids.sh`** band-passes every BOLD run of a BIDS dataset
+in native space (AFNI `3dTproject -passband`, default 0.01–0.1 Hz, quadratic
+detrending), adds each voxel's mean back so C-PAC can still mask and register
+the images, copies all other files unchanged, and writes a new BIDS dataset.
+Run it in the C-PAC container (see the script header), then run C-PAC on the
+new dataset. **`cpac_pipeline_linear_mcflirt_3mm_0.01_0.1.yml`** is the
+matching config: Linear/MCFLIRT, slice-timing correction, 3 mm functional
+outputs, 5 mm smoothing, and C-PAC's own 0.01–0.1 Hz band-pass after
+nuisance regression, which removes what regressing the unfiltered motion
+parameters puts back outside the band.
+
 ## Affine, nearest-neighbour normalization (no interpolation smoothing)
 
 **`native_to_mni_affine_nn.sh`** maps C-PAC's native-space preprocessed BOLD
