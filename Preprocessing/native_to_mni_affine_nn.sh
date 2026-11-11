@@ -36,7 +36,15 @@ pick() {  # first file matching a pattern, excluding template-space files
 need() { [ -n "$2" ] && [ -f "$2" ] || { echo "ERROR: no $1 found. Files there:"; ls "$3"; exit 1; }; }
 
 BOLD=$(pick "$FUNC/*_desc-preproc_bold.nii.gz");          need "native preprocessed BOLD (*_desc-preproc_bold.nii.gz)" "$BOLD" "$FUNC"
-T1=$(pick "$ANAT/*_desc-brain_T1w.nii.gz");               need "native T1 brain (*_desc-brain_T1w.nii.gz)" "$T1" "$ANAT"
+# T1 brain: C-PAC's *_desc-brain_T1w if present, otherwise the head image
+# (*_desc-head_T1w) times the brain mask (*_desc-brain_mask), both native.
+T1=$(pick "$ANAT/*_desc-brain_T1w.nii.gz")
+if [ -z "$T1" ]; then
+    HEAD=$(pick "$ANAT/*_desc-head_T1w.nii.gz");          need "native T1 head (*_desc-head_T1w.nii.gz)" "$HEAD" "$ANAT"
+    MASK=$(pick "$ANAT/*_desc-brain_mask.nii.gz");        need "native brain mask (*_desc-brain_mask.nii.gz)" "$MASK" "$ANAT"
+    T1="$W/T1w_brain.nii.gz"
+    fslmaths "$HEAD" -mas "$MASK" "$T1"
+fi
 MEAN=$(pick "$FUNC/*_desc-mean_bold.nii.gz"); [ -n "$MEAN" ] || MEAN=$(pick "$FUNC/*_sbref.nii.gz")
 MAT=$(pick "$FUNC/*from-bold_to-T1w*xfm.mat")
 
@@ -102,7 +110,7 @@ antsApplyTransforms -d 3 -e 3 -n NearestNeighbor --float 1 \
     -o "$OUT/${NAME}_space-MNI152affine_res-${RES}mm_desc-meanNN_bold.nii.gz" \
     -t "$W/t1_to_mni_0GenericAffine.mat" -t "$FUNC2T1"
 antsApplyTransforms -d 3 -n NearestNeighbor -i "$T1" -r "$REF" \
-    -o "$OUT/$(basename "$T1" .nii.gz | sed 's/_desc-brain_T1w//')_space-MNI152affine_res-${RES}mm_desc-brainNN_T1w.nii.gz" \
+    -o "$OUT/${NAME%%_task-*}_space-MNI152affine_res-${RES}mm_desc-brainNN_T1w.nii.gz" \
     -t "$W/t1_to_mni_0GenericAffine.mat"
 
 echo
