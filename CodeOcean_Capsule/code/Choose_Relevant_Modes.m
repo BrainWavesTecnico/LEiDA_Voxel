@@ -163,7 +163,7 @@ if generate_pyramid_groups
     % Load clustering centroids and masks from the clusters file.
     load([results_dir cluster_file], 'MNI_lowres_Mask', 'ind_voxels');
 
-    V_Yeo = struct2array(load('ParcelsMNI2mm', 'V_Yeo7'));
+    V_Yeo = getfield(load('ParcelsMNI2mm', 'V_Yeo7'), 'V_Yeo7');
     size_MNI = size(V_Yeo);
 
     % Create a smoothed, resampled brain mask for the transparent brain

@@ -38,7 +38,7 @@ N_Modes=size(Key_Modes_KC,1);
 size_MNI = [91 109 91];
 lim_mask = 0.5;
 % Load Yeo parcellation in MNI space at 2mm resolution.
-V_Yeo = struct2array(load('ParcelsMNI2mm', 'V_Yeo7'));
+V_Yeo = getfield(load('ParcelsMNI2mm', 'V_Yeo7'), 'V_Yeo7');
 ind_voxels_Yeo = find(V_Yeo > 0 & V_Yeo < 8);
 % Define Yeo network colors as in Yeo et al., 2011.
 YeoColor = [180 115 208; 76 112 210; 100 174 117; 230 150 200; 207 225 185; 250 221 107;   227 120 91] ./ 256;

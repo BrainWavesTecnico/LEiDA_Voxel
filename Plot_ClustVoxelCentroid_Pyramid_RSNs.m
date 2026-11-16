@@ -68,7 +68,7 @@ P_pval = squeeze(P_pval(stat_of_interest, :, :));
 
 %% Load RSN Parcellation and Prepare Mask
 % Load the mask of the Yeo parcellation in MNI 2mm space.
-V_Yeo = struct2array(load('ParcelsMNI2mm', 'V_Yeo7'));
+V_Yeo = getfield(load('ParcelsMNI2mm', 'V_Yeo7'), 'V_Yeo7');
 
 if overlap_Yeo
     % Identify voxels belonging to any of the 7 Yeo networks.
