@@ -11,8 +11,8 @@
 # Subjects already done are skipped, so after failures just run it again.
 #
 # Optional environment variables: PARALLEL_JOBS, N_CPUS, MEM_GB (otherwise
-# set from the cores and the memory Docker has; default 6 cores and 24 GB
-# per subject), CPAC_IMAGE.
+# set from the cores and the memory Docker has; default 8 cores, at least the
+# config's num_OMP_threads, and 24 GB per subject), CPAC_IMAGE.
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -51,8 +51,14 @@ docker image inspect "$CPAC_IMAGE" >/dev/null 2>&1 || { echo "Pulling $CPAC_IMAG
 # --- Resources ------------------------------------------------------------
 if [ "$(uname)" = Darwin ]; then NCORES=$(sysctl -n hw.ncpu); else NCORES=$(nproc); fi
 DOCKER_MEM_GB=$(( $(docker info --format '{{.MemTotal}}') / 1024 / 1024 / 1024 ))
-N_CPUS=${N_CPUS:-6}
+N_CPUS=${N_CPUS:-8}
+# C-PAC refuses to start if the config's num_OMP_threads exceeds the cores
+# per subject, so never give a subject fewer cores than that.
+OMP=$(grep -m1 'num_OMP_threads:' "$CONFIG_FILE" | awk '{print $2}')
+case "$OMP" in ''|*[!0-9]*) OMP=1 ;; esac
+[ "$N_CPUS" -ge "$OMP" ] || N_CPUS=$OMP
 [ "$N_CPUS" -le "$NCORES" ] || N_CPUS=$NCORES
+[ "$N_CPUS" -ge "$OMP" ] || fail "the config asks for num_OMP_threads: $OMP, but this computer has only $NCORES cores"
 MEM_GB=${MEM_GB:-24}   # C-PAC refuses to start a run if a step is estimated to need more
 if [ -z "${PARALLEL_JOBS:-}" ]; then
     by_mem=$(( (DOCKER_MEM_GB - 4) / MEM_GB ))     # leave ~4 GB for Docker itself
