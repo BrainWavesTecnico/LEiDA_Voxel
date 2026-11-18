@@ -11,7 +11,8 @@
 # Subjects already done are skipped, so after failures just run it again.
 #
 # Optional environment variables: PARALLEL_JOBS, N_CPUS, MEM_GB (otherwise
-# set from the cores and the memory Docker has), CPAC_IMAGE.
+# set from the cores and the memory Docker has; default 6 cores and 24 GB
+# per subject), CPAC_IMAGE.
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -52,7 +53,7 @@ if [ "$(uname)" = Darwin ]; then NCORES=$(sysctl -n hw.ncpu); else NCORES=$(npro
 DOCKER_MEM_GB=$(( $(docker info --format '{{.MemTotal}}') / 1024 / 1024 / 1024 ))
 N_CPUS=${N_CPUS:-6}
 [ "$N_CPUS" -le "$NCORES" ] || N_CPUS=$NCORES
-MEM_GB=${MEM_GB:-15}
+MEM_GB=${MEM_GB:-24}   # C-PAC refuses to start a run if a step is estimated to need more
 if [ -z "${PARALLEL_JOBS:-}" ]; then
     by_mem=$(( (DOCKER_MEM_GB - 4) / MEM_GB ))     # leave ~4 GB for Docker itself
     by_cpu=$(( NCORES / N_CPUS ))
