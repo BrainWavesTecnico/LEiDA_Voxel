@@ -4,9 +4,11 @@
 # Variant of cpac_pipeline_linear_mcflirt_0.01_0.1.yml with functional outputs
 # in MNI space at 3 mm instead of 2 mm (Linear resampling, MCFLIRT motion
 # correction, slice-timing correction, 0.01-0.1 Hz band-pass after nuisance
-# regression, 5 mm smoothing). All other settings are identical. Meant for
-# BOLD data already band-passed with bandpass_bids.sh; the band-pass here
-# removes what regressing the (unfiltered) motion parameters puts back.
+# regression, 5 mm smoothing). All other settings are identical. This is the
+# configuration used for the PODelirium dataset (run with run_cpac_all.sh on
+# the original BIDS data). It also works on data pre-filtered with
+# bandpass_bids.sh, where the band-pass here removes what regressing the
+# (unfiltered) motion parameters puts back.
 #
 
 # CPAC Pipeline Configuration YAML file

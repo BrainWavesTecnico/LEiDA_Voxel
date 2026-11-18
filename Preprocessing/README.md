@@ -89,6 +89,23 @@ Outputs are written in MNI152 space (2mm), which is what
 [`Get_EigenVectors_VoxelSpace_Server.m`](../Get_EigenVectors_VoxelSpace_Server.m)
 expects as input.
 
+## Running a whole dataset
+
+**`run_cpac_all.sh`** runs C-PAC with Docker on every subject (all sessions)
+of a BIDS dataset, using `run_cpapc_adni_ants.sh`:
+
+    ./run_cpac_all.sh <BIDS folder> <output folder> [config file]
+
+The default config is `cpac_pipeline_linear_mcflirt_3mm_0.01_0.1.yml`
+(slice-timing correction, MCFLIRT, nuisance regression then 0.01–0.1 Hz
+band-pass, Linear resampling to 3 mm MNI, 5 mm smoothing). Before starting it
+checks the dataset (and that `SliceTiming` is present when slice-timing
+correction is on), the config, Docker and the free disk space. It chooses how
+many subjects run at once from the cores and the memory Docker has (override
+with `PARALLEL_JOBS`, `N_CPUS`, `MEM_GB`), uses `linux/amd64` on Apple
+Silicon, and keeps a Mac awake while it runs. Finished subjects are skipped,
+so after failures just run it again.
+
 ## Band-pass before slice-timing correction
 
 C-PAC always runs slice-timing correction before its band-pass. To filter
