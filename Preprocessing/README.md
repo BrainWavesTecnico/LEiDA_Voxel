@@ -103,14 +103,13 @@ outputs, 5 mm smoothing, and C-PAC's own 0.01–0.1 Hz band-pass after
 nuisance regression, which removes what regressing the unfiltered motion
 parameters puts back outside the band.
 
-**`cpac_pipeline_linear_mcflirt_3mm_0.01_0.1_bpbefore.yml`** is the same
-config with `bandpass_filtering_order: 'Before'`: C-PAC band-passes the BOLD
-data **and** the nuisance regressors (24 motion parameters, white matter)
-with the same 0.01–0.1 Hz filter, then regresses, as recommended by
-Hallquist et al. (2013) and Lindquist et al. (2019). It uses only standard
-C-PAC steps; run it on the original, unfiltered BIDS data (no
-`bandpass_bids.sh`). `pipeline_name` is
-`cpac-adni-ants-linear-mcflirt-3mm-bpbefore`.
+**`cpac_pipeline_linear_mcflirt_3mm_0.01_0.1_bpbefore.yml`** (not
+recommended, kept as a record of a test) sets
+`bandpass_filtering_order: 'Before'`. In C-PAC 1.8.7 this band-passes the
+BOLD data before nuisance regression, but the regression uses the
+*unfiltered* regressors (the filtered copy is only written as an output) and
+nothing is filtered afterwards, so frequencies outside 0.01–0.1 Hz are
+reintroduced (Lindquist et al. 2019).
 
 ## Affine, nearest-neighbour normalization (no interpolation smoothing)
 

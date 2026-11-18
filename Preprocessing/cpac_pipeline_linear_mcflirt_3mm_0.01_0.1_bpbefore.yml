@@ -1,12 +1,13 @@
 %YAML 1.1
 
 ---
-# Variant of cpac_pipeline_linear_mcflirt_3mm_0.01_0.1.yml with the
-# 0.01-0.1 Hz band-pass applied BEFORE nuisance regression: C-PAC filters
-# the BOLD data and the regressors (24 motion parameters, white matter) with
-# the same filter, then regresses (Hallquist et al. 2013; Lindquist et al.
-# 2019). Slice-timing correction, MCFLIRT, Linear resampling to 3 mm and 5 mm
-# smoothing as before. Use on the original (unfiltered) BIDS data.
+# NOT RECOMMENDED - kept only as a record of a test run.
+# Variant of cpac_pipeline_linear_mcflirt_3mm_0.01_0.1.yml with
+# bandpass_filtering_order 'Before'. In C-PAC 1.8.7 this band-passes the BOLD
+# data before nuisance regression, but the regression still uses the
+# UNFILTERED regressors (the filtered copy is only written as an output) and
+# nothing is filtered afterwards, so the regression reintroduces frequencies
+# outside 0.01-0.1 Hz (Lindquist et al. 2019).
 #
 
 # CPAC Pipeline Configuration YAML file
@@ -530,7 +531,7 @@ nuisance_corrections:
           top_frequency: 0.10
           method: default
     lateral_ventricles_mask: $FSLDIR/data/atlases/HarvardOxford/HarvardOxford-lateral-ventricles-thr25-2mm.nii.gz
-    bandpass_filtering_order: 'Before'   # data AND regressors band-passed, then regression
+    bandpass_filtering_order: 'Before'   # C-PAC 1.8.7: data filtered, regressors used unfiltered
     regressor_masks:
       erode_anatomical_brain_mask:
         run: Off
