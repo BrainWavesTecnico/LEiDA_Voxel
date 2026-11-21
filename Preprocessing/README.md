@@ -8,6 +8,8 @@ of Connectomes, v1.8.7.dev1), via Docker.
 
 ## Files
 
+- **`pod_to_bids.sh`** — converts the PODelirium raw data (`POD/anat`,
+  `POD/func`) to BIDS, with the slice timing; re-run it to add new files.
 - **`run_cpapc_adni_ants.sh`** — batch driver script. Runs the C-PAC Docker
   image (`fcpindi/c-pac:latest`) once per subject over a BIDS-formatted
   dataset, in configurable batches (`BATCH_SIZE`, default 100 subjects) with
@@ -88,6 +90,62 @@ of Connectomes, v1.8.7.dev1), via Docker.
 Outputs are written in MNI152 space (2mm), which is what
 [`Get_EigenVectors_VoxelSpace_Server.m`](../Get_EigenVectors_VoxelSpace_Server.m)
 expects as input.
+
+## PODelirium: step by step
+
+How the PODelirium data are preprocessed, on a Mac or Linux computer with
+Docker. On Windows, use WSL2 with Docker Desktop and run the same commands
+in the Ubuntu terminal.
+
+1. **Install Docker Desktop** (https://www.docker.com/products/docker-desktop/).
+   On an Apple Silicon Mac, turn on *Settings → General → Use Rosetta for
+   x86_64/amd64 emulation*, and give Docker most of the memory in
+   *Settings → Resources* (at least 26 GB per subject processed at once).
+   Check it works: `docker run --rm hello-world`.
+2. **Get the scripts** (this branch):
+
+       git clone -b delirium-data-preprocessing https://github.com/BrainWavesTecnico/LEiDA_Voxel.git ~/LEiDA_Voxel
+       cd ~/LEiDA_Voxel/Preprocessing
+
+3. **Download C-PAC** (about 4 GB, once):
+
+       docker pull --platform linux/amd64 fcpindi/c-pac:release-v1.8.7
+
+4. **Convert the raw data to BIDS** with `pod_to_bids.sh`. The raw folder
+   (`POD/anat`, `POD/func`) is only read. Do a dry run first, then add `--go`:
+
+       bash pod_to_bids.sh /path/to/PODelirium/POD /path/to/PODelirium/POD_BIDS
+       bash pod_to_bids.sh /path/to/PODelirium/POD /path/to/PODelirium/POD_BIDS --go
+
+   It also writes the acquisition timing (TR = 2 s, interleaved slice order)
+   that slice-timing correction needs. If new raw files arrive later, run it
+   again: it only adds the new ones.
+5. **Run C-PAC on all subjects** with `run_cpac_all.sh` (described below):
+
+       ./run_cpac_all.sh /path/to/PODelirium/POD_BIDS /path/to/PODelirium/POD_cpac_A_3mm
+
+   It prints a summary first (subjects, scans, cores, memory, disk space).
+   Each scan takes roughly 15–30 minutes. Follow progress from another
+   terminal window with
+   `tail -f /path/to/PODelirium/POD_cpac_A_3mm/processing_log.txt`.
+   If some subjects fail, run the same command again: finished subjects are
+   skipped, and subjects with new sessions are processed again.
+6. **Results** for LEiDA are in
+   `POD_cpac_A_3mm/output/pipeline_cpac-adni-ants-linear-mcflirt-3mm/sub-*/ses-*/func/`:
+   `*_space-MNI152NLin6ASym_desc-preproc_bold.nii.gz` (3 mm MNI, band-passed
+   0.01–0.1 Hz) and its 5 mm smoothed version.
+
+Steps of the pipeline (`cpac_pipeline_linear_mcflirt_3mm_0.01_0.1.yml`):
+slice-timing correction → motion correction (FSL MCFLIRT) → coregistration
+to the T1 (FSL BBR) → nuisance regression (24 motion parameters + mean white
+matter, quadratic detrending; no CSF regression) → band-pass 0.01–0.1 Hz →
+normalization to MNI152 with ANTs, Linear interpolation to 3 mm → 5 mm
+smoothing.
+
+Note: the data contain an alternating odd/even slice artefact (interleaved
+acquisition with breathing-related head motion). It appears as stripes after
+normalization and is removed by the 5 mm smoothing; unsmoothed outputs still
+contain it. See `destripe_slices.py` for an optional native-space correction.
 
 ## Running a whole dataset
 

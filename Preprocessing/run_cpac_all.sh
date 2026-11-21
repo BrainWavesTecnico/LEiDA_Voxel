@@ -9,6 +9,8 @@
 # to 3 mm MNI, 5 mm smoothing). Before starting it checks the dataset, the
 # config, Docker and the free disk space, and keeps the computer awake.
 # Subjects already done are skipped, so after failures just run it again.
+# Subjects that gained a session since they were done (new data added to the
+# BIDS folder) are processed again.
 #
 # Optional environment variables: PARALLEL_JOBS, N_CPUS, MEM_GB (otherwise
 # set from the cores and the memory Docker has; default 8 cores, at least the
@@ -85,6 +87,36 @@ echo "================================================"
 [ "$free_gb" -ge "$need_gb" ] || echo "WARNING: free disk space may not be enough."
 [ "$PARALLEL_JOBS" -le 1 ] && [ "$DOCKER_MEM_GB" -lt 20 ] && \
     echo "WARNING: Docker has little memory. Raise it in Docker Desktop > Settings > Resources."
+
+# --- Subjects with new sessions --------------------------------------------
+# run_cpapc_adni_ants.sh skips subjects marked done in processing_log.txt.
+# If new data added a session for such a subject (e.g. a post-operative scan
+# that was missing), its success line is removed so the subject is processed
+# again (C-PAC processes all sessions of a subject together).
+LOG="$OUTPUT_DIR/processing_log.txt"
+PIPE=$(grep -m1 'pipeline_name:' "$CONFIG_FILE" | awk '{print $2}')
+if [ -f "$LOG" ]; then
+    requeue=""
+    for d in "$BIDS_DIR"/sub-*/; do
+        sub=$(basename "$d"); id=${sub#sub-}
+        grep -q "Successfully completed: $id at" "$LOG" || continue
+        for s in "$d"ses-*/; do
+            [ -d "$s" ] || continue
+            ses=$(basename "$s")
+            if [ ! -d "$OUTPUT_DIR/output/pipeline_$PIPE/$sub/$ses/func" ]; then
+                requeue="$requeue $id"; break
+            fi
+        done
+    done
+    if [ -n "$requeue" ]; then
+        cp "$LOG" "$LOG.bak-$(date +%Y%m%d-%H%M%S)"
+        for id in $requeue; do
+            grep -v "Successfully completed: $id at" "$LOG" > "$LOG.tmp" && mv "$LOG.tmp" "$LOG"
+            echo "Re-queued: $id (has a session without output) at $(date)" >> "$LOG"
+        done
+        echo "Subjects with new sessions, processed again:$requeue"
+    fi
+fi
 
 # --- Run --------------------------------------------------------------------
 RUN="$OUTPUT_DIR/run_cpac_batch.sh"
