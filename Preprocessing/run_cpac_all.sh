@@ -9,8 +9,8 @@
 # to 3 mm MNI, 5 mm smoothing). Before starting it checks the dataset, the
 # config, Docker and the free disk space, and keeps the computer awake.
 # Subjects already done are skipped, so after failures just run it again.
-# Subjects that gained a session since they were done (new data added to the
-# BIDS folder) are processed again.
+# Subjects that gained a session or whose input files changed since they
+# were done (new or replaced data in the BIDS folder) are processed again.
 #
 # Optional environment variables: PARALLEL_JOBS, N_CPUS, MEM_GB (otherwise
 # set from the cores and the memory Docker has; default 8 cores, at least the
@@ -95,11 +95,27 @@ echo "================================================"
 # again (C-PAC processes all sessions of a subject together).
 LOG="$OUTPUT_DIR/processing_log.txt"
 PIPE=$(grep -m1 'pipeline_name:' "$CONFIG_FILE" | awk '{print $2}')
+SIGDIR="$OUTPUT_DIR/.input_checksums"     # checksums of each done subject's input files
+input_sig() { (cd "$1" && find . -type f \( -name '*.nii*' -o -name '*.json' \) -exec cksum {} + | sort -k3); }
 if [ -f "$LOG" ]; then
     requeue=""
     for d in "$BIDS_DIR"/sub-*/; do
         sub=$(basename "$d"); id=${sub#sub-}
         grep -q "Successfully completed: $id at" "$LOG" || continue
+        # input files changed after the subject was processed (e.g. replaced
+        # by pod_to_bids.sh because the raw file was re-transferred): compare
+        # with the checksums saved after processing, or, for subjects done
+        # before checksums were kept, with the time of the subject's outputs
+        if [ -f "$SIGDIR/$sub.txt" ]; then
+            if [ "$(input_sig "$d")" != "$(cat "$SIGDIR/$sub.txt")" ]; then
+                requeue="$requeue $id"; continue
+            fi
+        else
+            outsub="$OUTPUT_DIR/output/pipeline_$PIPE/$sub"
+            if [ -d "$outsub" ] && [ -n "$(find "$d" -type f -name '*.nii*' -newer "$outsub" 2>/dev/null | head -1)" ]; then
+                requeue="$requeue $id"; continue
+            fi
+        fi
         for s in "$d"ses-*/; do
             [ -d "$s" ] || continue
             ses=$(basename "$s")
@@ -112,9 +128,9 @@ if [ -f "$LOG" ]; then
         cp "$LOG" "$LOG.bak-$(date +%Y%m%d-%H%M%S)"
         for id in $requeue; do
             grep -v "Successfully completed: $id at" "$LOG" > "$LOG.tmp" && mv "$LOG.tmp" "$LOG"
-            echo "Re-queued: $id (has a session without output) at $(date)" >> "$LOG"
+            echo "Re-queued: $id (new session or changed input files) at $(date)" >> "$LOG"
         done
-        echo "Subjects with new sessions, processed again:$requeue"
+        echo "Subjects with new sessions or changed input files, processed again:$requeue"
     fi
 fi
 
@@ -139,6 +155,13 @@ if command -v caffeinate >/dev/null 2>&1; then
 else
     "$RUN"
 fi
+
+# Save the input checksums of every done subject (inputs don't change during
+# a run, so these are the inputs that were processed).
+mkdir -p "$SIGDIR"
+for id in $(grep "Successfully completed:" "$LOG" 2>/dev/null | awk '{print $4}' | sort -u); do
+    [ -d "$BIDS_DIR/sub-$id" ] && input_sig "$BIDS_DIR/sub-$id" > "$SIGDIR/sub-$id.txt"
+done
 
 ok=$(grep "Successfully completed:" "$OUTPUT_DIR/processing_log.txt" 2>/dev/null | awk '{print $4}' | sort -u | wc -l | tr -d ' ')
 echo

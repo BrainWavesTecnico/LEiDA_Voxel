@@ -118,8 +118,11 @@ in the Ubuntu terminal.
        bash pod_to_bids.sh /path/to/PODelirium/POD /path/to/PODelirium/POD_BIDS --go
 
    It also writes the acquisition timing (TR = 2 s, interleaved slice order)
-   that slice-timing correction needs. If new raw files arrive later, run it
-   again: it only adds the new ones.
+   that slice-timing correction needs. If new raw files arrive later, or a
+   raw file is re-transferred (e.g. because the first copy was incomplete),
+   run it again: it adds new files, replaces BIDS copies that differ from the
+   raw files (`UPDATED`), and leaves identical ones alone. All raw fMRI files
+   should have the same size (63,488,352 bytes for 64×64×50×155 voxels).
 5. **Run C-PAC on all subjects** with `run_cpac_all.sh` (described below):
 
        ./run_cpac_all.sh /path/to/PODelirium/POD_BIDS /path/to/PODelirium/POD_cpac_A_3mm
@@ -129,7 +132,9 @@ in the Ubuntu terminal.
    terminal window with
    `tail -f /path/to/PODelirium/POD_cpac_A_3mm/processing_log.txt`.
    If some subjects fail, run the same command again: finished subjects are
-   skipped, and subjects with new sessions are processed again.
+   skipped, and subjects with new sessions or changed input files are
+   processed again (it keeps checksums of each subject's inputs in
+   `.input_checksums/` in the output folder).
 6. **Results** for LEiDA are in
    `POD_cpac_A_3mm/output/pipeline_cpac-adni-ants-linear-mcflirt-3mm/sub-*/ses-*/func/`:
    `*_space-MNI152NLin6ASym_desc-preproc_bold.nii.gz` (3 mm MNI, band-passed

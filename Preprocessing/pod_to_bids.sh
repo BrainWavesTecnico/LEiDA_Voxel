@@ -13,8 +13,11 @@
 #              sub-<ID>/ses-<pre|post>/func/sub-<ID>_ses-<ses>_task-rest_bold.nii
 # The T1 is copied into every session that has fMRI (C-PAC needs one per session).
 #
-# It can be re-run after new raw files arrive: files already in the BIDS
-# folder are left as they are and only new ones are added.
+# It can be re-run after new raw files arrive: new files are added, files
+# that changed in the raw folder (e.g. re-transferred because the first copy
+# was incomplete) replace their BIDS copy, and identical files are left as
+# they are. Added or replaced files make run_cpac_all.sh process that
+# subject again.
 #
 # Acquisition (from the collaborators): TR = 2 s, 50 axial slices, single-band,
 # interleaved ascending with odd slices first; slice 1 is the bottom slice
@@ -29,17 +32,27 @@ GO=0; [ "${3:-}" = "--go" ] && GO=1
 
 [ -d "$SRC/anat" ] && [ -d "$SRC/func" ] || { echo "No anat/ and func/ in $SRC"; exit 1; }
 
-# Copy; on a Mac (APFS) `cp -c` makes a clone that uses no extra disk space.
+# Copy src to dst. Returns 0 = copied new, 2 = replaced (dst differed from
+# src, e.g. src was re-transferred), 1 = dst already identical. Copied files
+# get the current time, so run_cpac_all.sh sees they are newer than the
+# subject's outputs and processes the subject again.
+# On a Mac (APFS) `cp -c` makes a clone that uses no extra disk space.
 copy() {
-    if [ -e "$2" ]; then return 1; fi
+    local status=0
+    if [ -e "$2" ]; then
+        cmp -s "$1" "$2" && return 1
+        status=2
+    fi
     if [ $GO = 1 ]; then
         mkdir -p "$(dirname "$2")"
+        rm -f "$2"
         cp -c "$1" "$2" 2>/dev/null || cp "$1" "$2"
+        touch "$2"
     fi
-    return 0
+    return $status
 }
 
-n_new=0; n_had=0; problems=0
+n_new=0; n_had=0; n_upd=0; problems=0
 for f in "$SRC"/func/*.nii "$SRC"/func/*.nii.gz; do
     [ -e "$f" ] || continue
     name=$(basename "$f")
@@ -57,13 +70,15 @@ for f in "$SRC"/func/*.nii "$SRC"/func/*.nii.gz; do
     fi
     t1ext=".nii"; case "$t1" in *.nii.gz) t1ext=".nii.gz";; esac
     base="$DST/sub-$sub/ses-$ses"
-    copy "$t1" "$base/anat/sub-${sub}_ses-${ses}_T1w$t1ext" || true
-    if copy "$f" "$base/func/sub-${sub}_ses-${ses}_task-rest_bold$ext"; then
-        echo "NEW   sub-$sub ses-$ses  <-  func/$name + anat/$(basename "$t1")"
-        n_new=$((n_new+1))
-    else
-        n_had=$((n_had+1))
-    fi
+    copy "$t1" "$base/anat/sub-${sub}_ses-${ses}_T1w$t1ext"; rt=$?
+    [ $rt = 2 ] && echo "UPDATED sub-$sub ses-$ses T1  <-  anat/$(basename "$t1") (differed from the BIDS copy)"
+    copy "$f" "$base/func/sub-${sub}_ses-${ses}_task-rest_bold$ext"; rf=$?
+    case $rf in
+        0) echo "NEW     sub-$sub ses-$ses  <-  func/$name + anat/$(basename "$t1")"; n_new=$((n_new+1)) ;;
+        2) echo "UPDATED sub-$sub ses-$ses  <-  func/$name (differed from the BIDS copy)"; n_upd=$((n_upd+1)) ;;
+        *) n_had=$((n_had+1)) ;;
+    esac
+    [ $rt = 2 ] && [ $rf = 1 ] && n_upd=$((n_upd+1))
 done
 
 # T1s without any fMRI (not included)
@@ -95,7 +110,7 @@ EOF
 fi
 
 echo
-echo "fMRI runs: $n_new new, $n_had already in $DST, $problems skipped"
+echo "fMRI runs: $n_new new, $n_upd updated (changed since the last conversion), $n_had unchanged, $problems skipped"
 if [ $GO = 1 ]; then
     echo "BIDS folder: $DST ($(ls -d "$DST"/sub-* 2>/dev/null | wc -l | tr -d ' ') subjects)"
 else
