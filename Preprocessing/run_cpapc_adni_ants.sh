@@ -92,9 +92,18 @@ process_subject() {
       /bids /outputs participant \
       --pipeline_file /pipeline_config.yml \
       --participant_label $subject \
-      ${CPAC_ARGS[@]+"${CPAC_ARGS[@]}"} >> "$subject_log" 2>&1
+      ${CPAC_ARGS[@]+"${CPAC_ARGS[@]}"} > "$subject_log.run" 2>&1
+    local status=$?
+    cat "$subject_log.run" >> "$subject_log"
+    # C-PAC can exit with status 0 although a step crashed; it then reports
+    # "Missing outputs have been logged". Count that as a failure.
+    if [ $status -eq 0 ] && grep -q "Missing outputs have been logged" "$subject_log.run"; then
+        echo "C-PAC reported missing outputs (a step crashed): see crash-*.txt in $OUTPUT_DIR/log" >> "$subject_log"
+        status=1
+    fi
+    rm -f "$subject_log.run"
 
-    if [ $? -eq 0 ]; then
+    if [ $status -eq 0 ]; then
         echo "✓ Successfully completed: $subject at $(date)" | tee -a "$subject_log" >> "$LOG_FILE"
         return 0
     else
