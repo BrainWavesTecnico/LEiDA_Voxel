@@ -135,6 +135,13 @@ in the Ubuntu terminal.
    skipped, and subjects with new sessions or changed input files are
    processed again (it keeps checksums of each subject's inputs in
    `.input_checksums/` in the output folder).
+7. **Sharing the main outputs:** `collect_outputs.sh` copies, for each scan,
+   the T1 and the brain/GM/WM/CSF masks in MNI space and the final fMRI into
+   a small BIDS-style folder (`--smoothed` adds the smoothed fMRI, `--zip`
+   makes a zip file), and lists scans with missing outputs:
+
+       bash collect_outputs.sh /path/to/PODelirium/POD_cpac_A_3mm /path/to/PODelirium/POD_preprocessed --zip
+
 6. **Results** for LEiDA are in
    `POD_cpac_A_3mm/output/pipeline_cpac-adni-ants-linear-mcflirt-3mm/sub-*/ses-*/func/`:
    `*_space-MNI152NLin6ASym_desc-preproc_bold.nii.gz` (3 mm MNI, band-passed
