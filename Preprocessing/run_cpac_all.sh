@@ -119,7 +119,9 @@ if [ -f "$LOG" ]; then
         for s in "$d"ses-*/; do
             [ -d "$s" ] || continue
             ses=$(basename "$s")
-            if [ ! -d "$OUTPUT_DIR/output/pipeline_$PIPE/$sub/$ses/func" ]; then
+            # the session's final fMRI in template space must exist (a folder
+            # alone is not enough: an interrupted re-run can leave it empty)
+            if [ -z "$(ls "$OUTPUT_DIR/output/pipeline_$PIPE/$sub/$ses/func/"*_space-*_desc-preproc_bold.nii.gz 2>/dev/null | head -1)" ]; then
                 requeue="$requeue $id"; break
             fi
         done
@@ -128,9 +130,9 @@ if [ -f "$LOG" ]; then
         cp "$LOG" "$LOG.bak-$(date +%Y%m%d-%H%M%S)"
         for id in $requeue; do
             grep -v "Successfully completed: $id at" "$LOG" > "$LOG.tmp" && mv "$LOG.tmp" "$LOG"
-            echo "Re-queued: $id (new session or changed input files) at $(date)" >> "$LOG"
+            echo "Re-queued: $id (new session, missing outputs or changed input files) at $(date)" >> "$LOG"
         done
-        echo "Subjects with new sessions or changed input files, processed again:$requeue"
+        echo "Subjects with new sessions, missing outputs or changed input files, processed again:$requeue"
     fi
 fi
 
